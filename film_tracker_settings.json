@@ -1,0 +1,21 @@
+{
+  "speed": 23.0,
+  "film_length": 30.0,
+  "leader_length": 1.0,
+  "elements": {
+    "Loading Elevator": 75.8,
+    "Prebath": 5.5,
+    "Buffer Wash": 17.2,
+    "Developer": 20.7,
+    "Stop": 24.1,
+    "Wash 1": 24.1,
+    "Bleach": 24.1,
+    "Wash 2": 24.1,
+    "Fixer": 24.1,
+    "Wash 3": 24.1,
+    "Wash 4": 19.5,
+    "Final Rinse": 5.2,
+    "Dryer": 52.2,
+    "Take-up Elevator": 18.9
+  }
+}
