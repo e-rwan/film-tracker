@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
 	QGroupBox,
 	QVBoxLayout,
 	QWidget,
+	QFrame
 )
 
 # ============================================================
@@ -27,12 +28,16 @@ from PySide6.QtWidgets import (
 # -------
 # Represents a physical ribbon segment.
 #
-# Attributes:
-#     type      : "film" or "leader"
-#     length    : segment length in meters
-#     id        : film identifier (film segments only)
+# Types:
+#     - film
+#     - leader
 #
-# Main members:
+# Attributes:
+#     type      : segment type
+#     length    : segment length in meters
+#     id        : film identifier (film only)
+#
+# Helpers:
 #     film()    : create a film segment
 #     leader()  : create a leader segment
 #     is_film   : convenience property
@@ -40,67 +45,92 @@ from PySide6.QtWidgets import (
 #
 # RibbonModel
 # -----------
-# Business logic and ribbon state.
+# Pure business logic.
 #
 # Responsibilities:
 #     - store ribbon segments
-#     - track ribbon progression
-#     - detect completed films
+#     - manage ribbon progression
 #     - calculate Queue / Processing / Receiving zones
 #     - calculate receiving reel contents
+#     - calculate remaining processing times
+#
+# State:
+#     segments
+#     processed_length
+#     receiving_offset
+#     next_film_id
 #
 # Methods:
 #     ribbon_length()
 #         Return total ribbon length.
 #
 #     iter_segments()
-#         Iterate through segments and yield:
+#         Iterate over ribbon segments and return:
 #         (segment, start_position, end_position)
 #
-#     add_film(film_length, leader_length)
-#         Append a new film and leader to the ribbon.
+#     add_film()
+#         Append a film and its leader.
 #
-#     get_received_lengths(machine_length)
-#         Calculate visible film/leader lengths on the
-#         receiving reel.
+#     get_received_lengths()
+#         Calculate visible film and leader lengths
+#         on the receiving reel.
 #
-#     build_segment_list(...)
-#         Build textual information for Queue,
-#         Processing or Receiving views.
+#     get_remaining_time()
+#         Calculate remaining processing time before
+#         a film exits the machine.
+#
+#     build_segment_list()
+#         Generate textual information for Queue,
+#         Processing and Receiving panels.
 #
 #
 # ProcessWidget
 # -------------
-# Rendering widget.
+# Machine visualization widget.
 #
 # Responsibilities:
+#     - draw reels
 #     - draw machine tanks
-#     - draw supply reel
-#     - draw receiving reel
 #     - draw ribbon position
+#     - display supply and receiving reel lengths
 #
-# Methods:
+# Rendering helpers:
+#     _compute_layout()
+#         Calculate drawing geometry.
+#
+#     _draw_headers()
+#         Draw reels and reel lengths.
+#
+#     _draw_tanks()
+#         Draw machine tanks and labels.
+#
+#     _draw_ribbon()
+#         Draw visible ribbon segments.
+#
 #     _draw_reels()
-#         Draw reel labels and reels.
+#         Draw supply and receiving reels.
 #
+# Public methods:
 #     paintEvent()
-#         Main rendering routine.
+#         Main rendering entry point.
 #
 #     draw_reel()
 #         Draw a single reel.
 #
 #     update_data()
-#         Receive new visualization data and repaint.
+#         Update displayed data and trigger repaint.
 #
 #
 # Main
 # ----
-# Main application window.
+# Main application window and controller.
 #
 # Responsibilities:
-#     - user interface
-#     - application workflow
-#     - synchronization between UI and RibbonModel
+#     - create user interface
+#     - manage user actions
+#     - drive simulation
+#     - synchronize UI and RibbonModel
+#     - save/load settings
 #
 # Methods:
 #     build()
@@ -109,38 +139,38 @@ from PySide6.QtWidgets import (
 #     elements()
 #         Return machine element lengths.
 #
-#     add_film()
-#         Add a film to the ribbon.
+#     machine_length()
+#         Return total machine length.
 #
 #     ribbon_length()
 #         Return total ribbon length.
 #
-#     tick()
-#         Timer callback advancing ribbon position.
+#     add_film()
+#         Add a film to the ribbon.
 #
-#     machine_length()
-#         Return total machine path length.
+#     tick()
+#         Advance ribbon position.
 #
 #     start()
-#         Start processing simulation.
+#         Start simulation.
 #
 #     pause()
-#         Pause processing simulation.
+#         Pause simulation.
 #
 #     reset()
-#         Reset ribbon state.
+#         Reset application state.
 #
 #     clear_receiving_reel()
 #         Clear received ribbon history.
 #
 #     refresh()
-#         Update all displays and calculations.
+#         Refresh calculations and displays.
 #
 #     save()
-#         Save application settings.
+#         Save settings to disk.
 #
 #     load()
-#         Load application settings.
+#         Load settings from disk.
 #
 # ============================================================
 
@@ -174,6 +204,10 @@ class Segment:
 	@property
 	def is_film(self):
 		return self.type == "film"
+
+	@property
+	def is_lead(self):
+		return self.type == "leader"
 
 
 # ============================================================
@@ -230,6 +264,52 @@ class RibbonModel:
 		self.segments.append(Segment.film(film_length, self.next_film_id))
 
 		self.segments.append(Segment.leader(leader_length))
+
+		self.next_film_id += 1
+
+	def attach_film(self, film_length, leader_length):
+		"""
+		Add a film immediately after the last existing segment.
+
+		Unlike add_film(), no extra free leader is inserted
+		between the previous film and the new one.
+
+		If queue already contains ribbon, fallback to add_film().
+		"""
+
+		queue_length = max(
+			0,
+			self.ribbon_length() - self.processed_length
+		)
+
+		# Something already waiting in queue
+		if queue_length > 0:
+			self.add_film(
+				film_length,
+				leader_length
+			)
+			return
+
+		# No ribbon yet
+		if not self.segments:
+			self.add_film(
+				film_length,
+				leader_length
+			)
+			return
+
+		self.segments.append(
+			Segment.film(
+				film_length,
+				self.next_film_id
+			)
+		)
+
+		self.segments.append(
+			Segment.leader(
+				leader_length
+			)
+		)
 
 		self.next_film_id += 1
 
@@ -320,29 +400,21 @@ class RibbonModel:
 			)
 
 
-			if visible <= 0 or not seg.is_film:
+			if visible <= 0:
 				continue
 
-			leader_visible = 0
-			leader_total = 0
-
-			if (
-				i + 1 < len(self.segments)
-				and self.segments[i + 1].type == "leader"
-			):
-				next_seg = self.segments[i + 1]
-
-				next_start = seg_end
-				next_end = next_start + next_seg.length
-
-				leader_visible = max(
-					0,
-					min(next_end, zone_end) - max(next_start, zone_start)
+			if seg.is_lead:
+				film_lines.append(
+					f"Leader : "
+					f"{visible:.1f} / "
+					f"{seg.length:.1f} m"
 				)
+				occupied_length += visible
+				continue
 
 			remaining_text = ""
 			if (
-				title == "Processing"
+				(title == "Processing" or title == "Queue")
 				and speed_ft_min is not None
 			):
 				remaining_text = (
@@ -350,27 +422,71 @@ class RibbonModel:
 					f"{self.get_remaining_time(
 						seg_end,
 						total_length,
-						speed_ft_min,
-						leader_total
+						speed_ft_min
 					)}"
 				)
 			
 			film_lines.append(
-				f"Film {seg.id} : "
+				f"{f' Film {seg.id} : '}"
 				f"{visible :.1f} / "
 				f"{seg.length:.1f} m"
-				f"{f' (+{leader_visible:.1f}m)' if leader_visible > 0 else ''}"
 				f"{remaining_text}"
 			)
 
-			occupied_length += visible + leader_visible
+			occupied_length += visible
 
-		lines = [f"{title} : {occupied_length:.1f} / {total_length:.1f} m", ""]
+		if(title == "Processing" ):
+			lines = [f"{title} : {occupied_length:.1f} / {total_length:.1f} m", ""]
+		else:
+			lines = [f"{title} : {occupied_length:.1f}"]
 
 		lines.extend(film_lines)
 
 		return "\n".join(lines)
 
+
+	def clear_supply_reel(self):
+		"""
+		Remove everything still waiting in queue.
+
+		Keep only the portion already engaged
+		in the machine or already received.
+		"""
+
+		new_segments = []
+
+		for seg, seg_start, seg_end in self.iter_segments():
+
+			remaining = min(
+				seg.length,
+				max(
+					0,
+					self.processed_length - seg_start
+				)
+			)
+
+			if remaining <= 0:
+				continue
+
+			if remaining >= seg.length:
+				new_segments.append(seg)
+				continue
+
+			if seg.is_film:
+				new_segments.append(
+					Segment.film(
+						remaining,
+						seg.id
+					)
+				)
+			else:
+				new_segments.append(
+					Segment.leader(
+						remaining
+					)
+				)
+
+		self.segments = new_segments
 
 
 
@@ -411,6 +527,22 @@ def color_for(name):
 
 	return QColor(120, 120, 120)
 
+def darken_color(color, factor=0.45):
+	"""
+	Return a darker version of a color while
+	preserving its hue and saturation.
+	"""
+
+	h, s, v, a = color.getHsv()
+
+	v = int(v * factor) if v > 100 else v
+
+	return QColor.fromHsv(
+		h,
+		s,
+		v,
+		a
+	)
 
 
 # ============================================================
@@ -435,11 +567,12 @@ class ProcessWidget(QWidget):
 		self.elements={}
 		self.ribbon=[]
 		self.position=0.0
+		self.speed_ft_min = 0
 
 		self.supply_length=0.0
 		self.received_length=0.0
 
-		self.setMinimumHeight(550)
+		self.setMinimumHeight(650)
 
 		self.supply_angle = 0.0
 
@@ -536,7 +669,7 @@ class ProcessWidget(QWidget):
 
 			p.fillRect(
 				rect,
-				color_for(name)
+				darken_color(color_for(name), 0.8)
 			)
 
 			pen = QPen(Qt.GlobalColor.black)
@@ -574,12 +707,13 @@ class ProcessWidget(QWidget):
 			p.save()
 
 			anchor_x = curx + sw / 2
-			anchor_y = y - 5
+			anchor_y = y - 10
 
 			p.translate(
 				anchor_x,
 				anchor_y
 			)
+
 
 			p.rotate(35)
 
@@ -739,10 +873,106 @@ class ProcessWidget(QWidget):
 			layout
 		)
 
+		self._draw_tank_table(
+			p,
+			layout
+		)
+
 		self._draw_ribbon(
 			p,
 			layout
 		)
+
+	def _draw_tank_table(self, p, layout):
+		"""
+		Draw process information table.
+
+		Each tank gets the same width.
+		Displays:
+			- tank name
+			- length
+			- processing time
+		"""
+
+		if not self.elements:
+			return
+
+		process_x = layout["process_x"]
+		process_w = layout["process_w"]
+
+		y = layout["tank_y"] + layout["tank_h"] + 20
+
+		table_h = 70
+
+		count = len(self.elements)
+
+		if count <= 0:
+			return
+
+		cell_w = process_w / count
+
+		speed_m_min = self.speed_ft_min * 0.3048
+
+		for index, (name, length) in enumerate(self.elements.items()):
+
+			x = process_x + index * cell_w
+
+			rect = QRectF(
+				x,
+				y,
+				cell_w,
+				table_h
+			)
+
+			# background
+			base_color = color_for(name)
+			table_color = darken_color(
+				base_color,
+				0.45
+			)
+
+			p.fillRect(
+				rect,
+				table_color
+			)
+
+			# contour
+			p.setPen(QColor(120, 120, 120))
+			p.drawRect(rect)
+
+			# duration
+			if speed_m_min > 0:
+				duration_sec = length / speed_m_min * 60
+
+				minutes = int(duration_sec // 60)
+				seconds = int(duration_sec % 60)
+
+				duration_text = f"{minutes:02d}:{seconds:02d}"
+			else:
+				duration_text = "--:--"
+
+			p.setPen(Qt.GlobalColor.white)
+
+			# nom
+			p.drawText(
+				QRectF(x, y + 4, cell_w, 20),
+				Qt.AlignmentFlag.AlignCenter,
+				name
+			)
+
+			# longueur
+			p.drawText(
+				QRectF(x, y + 24, cell_w, 20),
+				Qt.AlignmentFlag.AlignCenter,
+				f"{length:.2f} m"
+			)
+
+			# durée
+			p.drawText(
+				QRectF(x, y + 44, cell_w, 20),
+				Qt.AlignmentFlag.AlignCenter,
+				duration_text
+			)
 
 	def draw_reel(self, p, x, y, diameter, angle=0.0):
 		"""Draw a film reel with rotating holes."""
@@ -809,11 +1039,13 @@ class ProcessWidget(QWidget):
 		ribbon,
 		position,
 		supply_length,
-		received_length
+		received_length,
+		speed_ft_min
 	):
 		self.elements = elements
 		self.ribbon = ribbon
 		self.position = position
+		self.speed_ft_min = speed_ft_min
 
 		self.supply_length = supply_length
 		self.received_length = received_length
@@ -896,21 +1128,43 @@ class Main(QWidget):
 		params.addWidget(QLabel("Leader"))
 		params.addWidget(self.leader_length)
 
+		params.addSpacing(20)
+		
+		b=QPushButton("Add to queue")
+		b.clicked.connect(self.add_film)
+		params.addWidget(b)
+
+		b=QPushButton("Attach to film")
+		b.clicked.connect(self.attach_to_film)
+		params.addWidget(b)
+
 		params.addStretch()
 
 		process.addLayout(params)
 
 		btns=QHBoxLayout()
-		for txt,fn in [
-			("Add Film",self.add_film),
-			("Start",self.start),
-			("Pause",self.pause),
-			("Reset",self.reset),
-			("Clear Reel",self.clear_receiving_reel)
-		]:
-			b=QPushButton(txt)
-			b.clicked.connect(fn)
-			btns.addWidget(b)
+		self.start_pause_btn = QPushButton("Start")
+		self.start_pause_btn.clicked.connect(
+			self.toggle_simulation
+		)
+		btns.addWidget(self.start_pause_btn)
+
+		line = QFrame()
+		line.setFrameShape(QFrame.Shape.VLine)
+		line.setFrameShadow(QFrame.Shadow.Sunken)
+		btns.addWidget(line)
+
+		b = QPushButton("Reset")
+		b.clicked.connect(self.reset)
+		btns.addWidget(b)
+
+		b = QPushButton("Clear supply reel")
+		b.clicked.connect(self.clear_supply_reel)
+		btns.addWidget(b)
+
+		b = QPushButton("Clear receiving reel")
+		b.clicked.connect(self.clear_receiving_reel)
+		btns.addWidget(b)
 
 		process.addLayout(btns)
 
@@ -973,9 +1227,62 @@ class Main(QWidget):
 
 		self.refresh()
 
+	def attach_to_film(self):
+		"""
+		Attach a film directly behind the last film already
+		in the machine.
+
+		If queue already contains ribbon, fallback to the
+		normal queue insertion.
+		"""
+
+		self.model.attach_film(
+			self.film_length.value(),
+			self.leader_length.value()
+		)
+
+		self.refresh()
+
 	def ribbon_length(self):
 		return self.model.ribbon_length()
-	
+
+	def toggle_simulation(self):
+
+		if self.timer.isActive():
+
+			self.timer.stop()
+
+			self.start_pause_btn.setText(
+				"Start"
+			)
+
+		else:
+
+			self.timer.start(50)
+
+			self.start_pause_btn.setText(
+				"Pause"
+			)
+
+	def update_text_edit(self, edit, text):
+
+		if text == edit.toPlainText():
+			return
+
+		sb = edit.verticalScrollBar()
+
+		ratio = (
+			sb.value() / max(1, sb.maximum())
+		)
+
+		edit.setPlainText(text)
+
+		sb = edit.verticalScrollBar()
+
+		sb.setValue(
+			int(sb.maximum() * ratio)
+		)
+
 	def tick(self):
 		step = (
 			self.speed.value()
@@ -994,14 +1301,9 @@ class Main(QWidget):
 		return sum(self.elements().values())
 
 	## Buttons
-
-	def start(self):
-		self.timer.start(50)
-
-	def pause(self):
-		self.timer.stop()
-
 	def reset(self):
+		self.start_pause_btn.setText("Start")
+		self.model.segments.clear()
 		self.timer.stop()
 		self.model.segments.clear()
 		self.received_film=0.0
@@ -1010,6 +1312,10 @@ class Main(QWidget):
 		self.model.processed_length=0.0
 		self.model.receiving_offset=0.0
 
+		self.refresh()
+
+	def clear_supply_reel(self):
+		self.model.clear_supply_reel()
 		self.refresh()
 
 	def clear_receiving_reel(self):
@@ -1038,18 +1344,21 @@ class Main(QWidget):
 		receiving_start = self.model.receiving_offset
 		receiving_end = machine_start
 
-		# Queue
-		self.queue_label.setPlainText(
+		# QUEUE
+		self.update_text_edit(
+			self.queue_label,
 			self.model.build_segment_list(
 				queue_start,
 				queue_end,
 				"Queue",
-				600
+				self.machine_length(),
+				self.speed.value()
 			)
 		)
 
-		# Processing
-		self.processing_label.setPlainText(
+		# PROCESSING
+		self.update_text_edit(
+			self.processing_label,
 			self.model.build_segment_list(
 				machine_start,
 				machine_end,
@@ -1059,8 +1368,9 @@ class Main(QWidget):
 			)
 		)
 
-		# Receiving
-		self.receiving_label.setPlainText(
+		# RECEIVING
+		self.update_text_edit(
+			self.receiving_label,
 			self.model.build_segment_list(
 				receiving_start,
 				receiving_end,
@@ -1079,7 +1389,8 @@ class Main(QWidget):
 			self.model.segments,
 			self.model.processed_length,
 			total_queue,
-			self.received_film + self.received_leader
+			self.received_film + self.received_leader,
+			self.speed.value()
 		)
 
 		self.save()
