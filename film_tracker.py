@@ -3,7 +3,7 @@ import os
 import math
 
 from PySide6.QtCore import QRectF, QTimer, Qt
-from PySide6.QtGui import QColor, QPainter, QPen
+from PySide6.QtGui import QColor, QPainter, QPen, QGuiApplication, QFont
 from PySide6.QtWidgets import (
 	QApplication,
 	QDoubleSpinBox,
@@ -1142,31 +1142,74 @@ class Main(QWidget):
 
 		process.addLayout(params)
 
-		btns=QHBoxLayout()
+		# Play/pause, forward/backward button
+		btnsPlay=QHBoxLayout()
+
+		self.move_left_btn = QPushButton("Step backward")
+		self.move_left_btn.clicked.connect(
+			lambda: self.move_ribbon(-1)
+		)
+		btnsPlay.addWidget(self.move_left_btn)
+		self.move_left_btn.setToolTip(
+			"Move ribbon -1 m (Ctrl = -10 m)"
+		)
+
 		self.start_pause_btn = QPushButton("Start")
 		self.start_pause_btn.clicked.connect(
 			self.toggle_simulation
 		)
-		btns.addWidget(self.start_pause_btn)
+		btnsPlay.addWidget(self.start_pause_btn)
+		self.start_pause_btn.setToolTip(
+			"Start|Pause simulation"
+		)
+
+		self.move_right_btn = QPushButton("Step forward")
+		self.move_right_btn.clicked.connect(
+			lambda: self.move_ribbon(1)
+		)
+		btnsPlay.addWidget(self.move_right_btn)
+		self.move_right_btn.setToolTip(
+			"Move ribbon +1 m (Ctrl = +10 m)"
+		)
+
+		font = self.start_pause_btn.font()
+		font.setBold(True)
+
+		self.move_left_btn.setFont(font)
+		self.start_pause_btn.setFont(font)
+		self.move_right_btn.setFont(font)
+		process.addLayout(btnsPlay)
+
+		# Clear/reset buttons
+		btnsClear=QHBoxLayout()
 
 		line = QFrame()
 		line.setFrameShape(QFrame.Shape.VLine)
 		line.setFrameShadow(QFrame.Shadow.Sunken)
-		btns.addWidget(line)
+		btnsClear.addWidget(line)
 
 		b = QPushButton("Reset")
 		b.clicked.connect(self.reset)
-		btns.addWidget(b)
+		btnsClear.addWidget(b)
+		b.setToolTip(
+			"Reset whole simulation"
+		)
 
 		b = QPushButton("Clear supply reel")
 		b.clicked.connect(self.clear_supply_reel)
-		btns.addWidget(b)
+		btnsClear.addWidget(b)
+		b.setToolTip(
+			"Empty suplly queue list"
+		)
 
 		b = QPushButton("Clear receiving reel")
 		b.clicked.connect(self.clear_receiving_reel)
-		btns.addWidget(b)
+		btnsClear.addWidget(b)
+		b.setToolTip(
+			"Empty receiving queue list"
+		)
 
-		process.addLayout(btns)
+		process.addLayout(btnsClear)
 
 		# INFO
 		info_group = QGroupBox()
@@ -1282,6 +1325,34 @@ class Main(QWidget):
 		sb.setValue(
 			int(sb.maximum() * ratio)
 		)
+
+	def move_ribbon(self, direction):
+		"""
+		Move ribbon manually left or right
+		"""
+
+		step = (
+			10.0
+			if (
+				QGuiApplication.keyboardModifiers()
+				& Qt.KeyboardModifier.ControlModifier
+			)
+			else 1.0
+		)
+
+		self.model.processed_length += (
+			direction * step
+		)
+
+		self.model.processed_length = max(
+			0,
+			min(
+				self.model.processed_length,
+				self.ribbon_length()
+			)
+		)
+
+		self.refresh()
 
 	def tick(self):
 		step = (
