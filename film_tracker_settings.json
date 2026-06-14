@@ -1,21 +1,83 @@
 {
   "speed": 22.6,
+  "speed_presets": [
+    22.6,
+    18.5,
+    14.5,
+    27.1
+  ],
   "film_length": 30.0,
   "leader_length": 1.0,
-  "elements": {
-    "Loading Elevator": 75.8,
-    "Prebath": 5.5,
-    "Buffer Wash": 17.2,
-    "Developer": 20.7,
-    "Stop": 24.1,
-    "Wash 1": 24.1,
-    "Bleach": 24.1,
-    "Wash 2": 24.1,
-    "Fixer": 24.1,
-    "Wash 3": 24.1,
-    "Wash 4": 19.5,
-    "Final Rinse": 5.2,
-    "Dryer": 52.2,
-    "Take-up Elevator": 18.9
-  }
+  "tanks": [
+    {
+      "name": "Loading Elevator",
+      "length": 75.8,
+      "color": "#2d2d2d"
+    },
+    {
+      "name": "Prebath",
+      "length": 5.5,
+      "color": "#6eb1be"
+    },
+    {
+      "name": "Buffer Wash",
+      "length": 17.2,
+      "color": "#7291c8"
+    },
+    {
+      "name": "Developer",
+      "length": 20.7,
+      "color": "#786db4"
+    },
+    {
+      "name": "Stop",
+      "length": 24.1,
+      "color": "#c8af62"
+    },
+    {
+      "name": "Wash 1",
+      "length": 24.1,
+      "color": "#7291c8"
+    },
+    {
+      "name": "Bleach",
+      "length": 24.1,
+      "color": "#b46d6d"
+    },
+    {
+      "name": "Wash 2",
+      "length": 24.1,
+      "color": "#7291c8"
+    },
+    {
+      "name": "Fixer",
+      "length": 24.1,
+      "color": "#61a061"
+    },
+    {
+      "name": "Wash 3",
+      "length": 24.1,
+      "color": "#7291c8"
+    },
+    {
+      "name": "Wash 4",
+      "length": 19.5,
+      "color": "#7291c8"
+    },
+    {
+      "name": "Final Rinse",
+      "length": 5.2,
+      "color": "#6eb1be"
+    },
+    {
+      "name": "Dryer",
+      "length": 52.2,
+      "color": "#786552"
+    },
+    {
+      "name": "Take-up Elevator",
+      "length": 18.9,
+      "color": "#2D2D2D"
+    }
+  ]
 }
