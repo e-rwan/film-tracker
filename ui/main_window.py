@@ -40,7 +40,6 @@ from model.tank import Tank
 from ui.process_widget import ProcessWidget
 from ui.segment_editor import SegmentEditor
 
-
 class MainWindow(QWidget):
 	"""
 	Main application window.
@@ -1091,18 +1090,23 @@ class MainWindow(QWidget):
 
 		rows = []
 
-		for seg in self.model.segments:
+		total_film_lenght = 0
+		total_leader_lenght = 0
+		for seg in reversed(self.model.segments):
 
 			if seg.is_film:
+				total_film_lenght += seg.length
 				name = seg.name
-				text_align = "left"
+				cssclass = "film"
 			else:
+				total_leader_lenght += seg.length
+				if seg.length <= 2: continue
 				name = "Leader"
-				text_align = "right"
+				cssclass = "leader"
 
 			rows.append(
 				f"""
-				<tr>
+				<tr class="{cssclass}">
 					<td>{name}</td>
 					<td>{seg.length:.1f} m</td>
 					<td style="height:40px">&nbsp;</td>
@@ -1135,6 +1139,12 @@ class MainWindow(QWidget):
 				th {{
 					background:#dddddd;
 				}}
+				.leader td{{
+					text-align: right;
+				}}
+				.film td{{
+					font-weight: bold;
+				}}
 			</style>
 		</head>
 
@@ -1161,6 +1171,13 @@ class MainWindow(QWidget):
 
 		{''.join(rows)}
 
+		<tr>
+			<td colspan=3>
+				TOTAL film: {total_film_lenght}
+				<br>
+				TOTAL leader: {total_leader_lenght}
+			</td>
+		</tr>
 		</table>
 
 		</body>
