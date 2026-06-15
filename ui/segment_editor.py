@@ -253,6 +253,19 @@ class SegmentEditor(QWidget):
 			QTableView::item {
 				padding: 1px 5px;
 			}
+			QTableView::item:selected {
+				background-color: black;
+				color: white;
+			}
+			QTableView::item:selected:active {
+				background-color: black;
+				color: white;
+			}
+
+			QTableView::item:selected:!active {
+				background-color: black;
+				color: white;
+			}
 		""")
 
 		header = table.horizontalHeader()
@@ -366,22 +379,29 @@ class SegmentEditor(QWidget):
 
 			table.blockSignals(True)
 
-			table.clearSelection()
+		try:
 
-			for row in range(table.rowCount()):
+			for table in self.tables:
 
-				item = table.item(row, 0)
+				table.clearSelection()
 
-				if item is None:
-					continue
+				for row in range(table.rowCount()):
 
-				row_segment = item.data(
-					Qt.ItemDataRole.UserRole
-				)
+					item = table.item(row, 0)
 
-				if row_segment is segment:
+					if item is None:
+						continue
 
-					table.selectRow(row)
-					break
+					row_segment = item.data(
+						Qt.ItemDataRole.UserRole
+					)
 
-			table.blockSignals(False)
+					if row_segment is segment:
+
+						table.selectRow(row)
+						break
+
+		finally:
+
+			for table in self.tables:
+				table.blockSignals(False)

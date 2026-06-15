@@ -659,7 +659,12 @@ class MainWindow(QWidget):
 		if segment not in self.model.segments:
 			return
 
-		self.model.segments.remove(segment)
+		index = next(
+			i
+			for i, s in enumerate(self.model.segments)
+			if s is segment
+		)
+		del self.model.segments[index]
 
 		self.selected_segment = None
 
@@ -672,7 +677,11 @@ class MainWindow(QWidget):
 		if segment is None:
 			return
 
-		index = self.model.segments.index(segment)
+		index = next(
+			i
+			for i, s in enumerate(self.model.segments)
+			if s is segment
+		)
 
 		new_index = index + offset
 
@@ -688,6 +697,16 @@ class MainWindow(QWidget):
 		)
 
 		self.refresh()
+
+		self.selected_segment = segment
+
+		self.segment_editor.select_segment(
+			segment
+		)
+
+		self.view.set_selected_segment(
+			segment
+		)
 
 	def apply_selected_segment(
 		self,
@@ -929,10 +948,6 @@ class MainWindow(QWidget):
 			)
 		)
 
-		self.segment_editor.populate(
-			rows
-		)
-
 		self.segment_editor.populate(rows)
 
 		if self.selected_segment is not None:
@@ -982,7 +997,7 @@ class MainWindow(QWidget):
 		self.model.segments.clear()
 		self.received_film=0.0
 		self.received_leader=0.0
-		self.model.next_film_id = 1
+		self.model._next_film_id = 1
 		self.model.processed_length=0.0
 		self.model.receiving_offset=0.0
 

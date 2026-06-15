@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 
 
-@dataclass
+@dataclass(eq=False)
 class Segment:
 	"""
 	Represents a continuous section of ribbon.
@@ -15,23 +15,24 @@ class Segment:
 
 	type: str
 	length: float
-	id: int | None = None
+	id: int
 	name: str | None = None
 
 	@classmethod
-	def film(cls, length, film_id, film_name):
+	def film(cls, length, segment_id, film_name):
 		return cls(
 			"film",
 			length,
-			film_id,
+			segment_id,
 			film_name
 		)
 
 	@classmethod
-	def leader(cls, length):
+	def leader(cls, length, segment_id):
 		return cls(
 			"leader",
-			length
+			length,
+			segment_id
 		)
 
 	@property

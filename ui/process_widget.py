@@ -294,24 +294,21 @@ class ProcessWidget(QWidget):
 			)
 
 			if seg is self.selected_segment:
-
 				pen = QPen(
 					QColor(
 						255,
-						255,
+						0,
 						0
 					)
 				)
-
-				if seg.is_film:
-					p.setBrush(
-						QColor(
-							255,
-							255,
-							0,
-							120
-						)
+				p.setBrush(
+					QColor(
+						200,
+						60,
+						20,
+						120
 					)
+				)
 
 
 			pen.setWidth(1)

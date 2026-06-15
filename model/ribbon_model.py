@@ -19,10 +19,11 @@ class RibbonModel:
 
 		self.segments = []
 
+		self._next_segment_id = 1
+		self._next_film_id = 1
+
 		self.processed_length = 0.0
 		self.receiving_offset = 0.0
-
-		self.next_film_id = 1
 
 	def ribbon_length(self):
 		"""Return total ribbon length in meters."""
@@ -50,16 +51,14 @@ class RibbonModel:
 			free_leader = self.processed_length - last_film_end
 
 			if free_leader > 0:
-				self.segments.append(Segment.leader(free_leader))
+				self.segments.append(Segment.leader(free_leader, self.next_segment_id()))
 
 		if not film_name:
-			film_name = f"film {self.next_film_id}"
+			film_name = f"film {self.next_film_id()}"
 
-		self.segments.append(Segment.film(film_length, self.next_film_id, film_name))
+		self.segments.append(Segment.film(film_length, self.next_segment_id(), film_name))
 
-		self.segments.append(Segment.leader(leader_length))
-
-		self.next_film_id += 1
+		self.segments.append(Segment.leader(leader_length, self.next_segment_id()))
 
 	def attach_film(self, film_length, leader_length, film_name=None):
 		"""
@@ -81,23 +80,22 @@ class RibbonModel:
 			return
 
 		if not film_name:
-			film_name = f"film {self.next_film_id}"
+			film_name = f"film {self.next_film_id()}"
 
 		self.segments.append(
 			Segment.film(
 				film_length,
-				self.next_film_id,
+				self.next_segment_id(),
 				film_name
 			)
 		)
 
 		self.segments.append(
 			Segment.leader(
-				leader_length
+				leader_length,
+				self.next_segment_id()
 			)
 		)
-
-		self.next_film_id += 1
 
 	def get_received_lengths(self, machine_length):
 		"""
@@ -259,8 +257,27 @@ class RibbonModel:
 			else:
 				new_segments.append(
 					Segment.leader(
-						remaining
+						remaining,
+						self.next_segment_id()
 					)
 				)
 
 		self.segments = new_segments
+
+	def next_segment_id(self):
+
+		segment_id = self._next_segment_id
+
+		self._next_segment_id += 1
+
+		return segment_id
+
+
+	def next_film_id(self):
+
+		film_id = self._next_film_id
+
+		self._next_film_id += 1
+
+		return film_id
+
