@@ -1,4 +1,4 @@
-# segment.py
+# model/segment.py
 
 from dataclasses import dataclass
 

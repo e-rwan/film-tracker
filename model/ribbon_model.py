@@ -1,4 +1,4 @@
-# ribbon_model.py
+# model/ribbon_model.py
 
 from model.segment import Segment
 from model.tank import Tank
@@ -271,7 +271,6 @@ class RibbonModel:
 		self._next_segment_id += 1
 
 		return segment_id
-
 
 	def next_film_id(self):
 

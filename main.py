@@ -4,8 +4,11 @@ from PySide6.QtWidgets import QApplication
 
 from ui.main_window import MainWindow
 
+from utils.lang import lang
 
 def main():
+
+	lang.load("fr")
 
 	app = QApplication([])
 

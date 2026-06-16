@@ -7,7 +7,7 @@ from PySide6.QtGui import QColor, QPainter, QPen
 from PySide6.QtWidgets import QWidget
 
 from model.tank import Tank
-
+from utils.lang import lang
 
 class ProcessWidget(QWidget):
 	"""
@@ -40,10 +40,10 @@ class ProcessWidget(QWidget):
 
 	def _draw_reels(self, p):
 		"""Draw reel labels and reels."""
-		p.drawText(20,40,"Supply Reel")
+		p.drawText(20,40, lang.tr("supply_reel"))
 		self.draw_reel(p, 20, 55, 70, self.reel_angle)
 
-		p.drawText(self.width()-90,40,"Receiving Reel")
+		p.drawText(self.width()-90,40, lang.tr("receiving_reel"))
 		self.draw_reel(p, self.width()-90, 55, 70, self.reel_angle)
 
 	def _compute_layout(self, process_len):
@@ -470,7 +470,7 @@ class ProcessWidget(QWidget):
 		center_x = x + diameter / 2
 		center_y = y + diameter / 2
 
-		# Cercle extérieur
+		# external circle
 		p.drawEllipse(
 			QRectF(
 				x,
@@ -480,7 +480,7 @@ class ProcessWidget(QWidget):
 			)
 		)
 
-		# Moyeu central
+		# side holes
 		hub_diameter = diameter * 0.05
 
 		p.drawEllipse(
@@ -502,18 +502,15 @@ class ProcessWidget(QWidget):
 				- 90
 				+ angle
 			)
-
 			hx = (
 				center_x
 				+ math.cos(a) * hole_distance
 			)
-
 			hy = (
 				center_y
 				+ math.sin(a) * hole_distance
 			)
-
-			# Trou
+			# central hole
 			p.drawEllipse(
 				QRectF(
 					hx - hole_radius,

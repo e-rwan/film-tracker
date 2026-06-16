@@ -1,0 +1,68 @@
+window_title=Film Tracker
+
+process=Procédé
+settings=Réglages
+
+speed_presets=Vitesses
+add_tank=Ajouter cuve
+new_tank=Nouvelle cuve
+
+speed=Vitesse
+name=Nom
+film=Film
+leader=Amorce
+
+add_to_queue=➠ Ajouter
+attach_to_film=➥ Raccorder
+print_queue=🖶 Imprimer
+
+start=▶ Marche
+pause=❚❚ Pause
+
+move_left=<< -1m
+move_left_ctrl=<< -10m
+
+move_right=+1m >>
+move_right_ctrl=+10m >>
+
+reset=Reset
+
+supply_reel=Entrée
+receiving_reel=Sortie
+
+clear_supply_reel=Vider entrée
+clear_receiving_reel=Vider sortie
+
+tooltip_move_left=Déplacer le ruban de -1 m (Ctrl = -10 m)
+tooltip_move_right=Déplacer le ruban de +1 m (Ctrl = +10 m)
+tooltip_start_pause=Démarrer ou mettre en pause la simulation
+
+tooltip_reset=Réinitialiser la simulation
+tooltip_clear_supply=Vider la file d'entrée
+tooltip_clear_receiving=Vider la file de sortie
+
+queue=Entrée
+processing=Traitement
+receiving=Sortie
+
+apply=Valider
+delete=Suppr.
+
+move_up=Monter
+move_down=Descendre
+
+type=Type
+length=Longueur
+total=Total
+eta=ETA
+
+tank_color=Couleur
+
+queue_list=Liste de chargement
+date=Date
+notes=Notes
+
+total_film=TOTAL film
+total_leader=TOTAL amorce
+
+leader_name=Amorce

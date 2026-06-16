@@ -1,0 +1,65 @@
+window_title=Film Tracker
+
+process=Process
+settings=Settings
+
+speed_presets=Speed presets
+add_tank=Add tank
+new_tank=New tank
+
+speed=Speed
+name=Name
+film=Film
+leader=Leader
+
+add_to_queue=➠ Add to queue
+attach_to_film=➥ Attach to film
+print_queue=🖶 Print queue
+
+start=▶ Start
+pause=❚❚ Pause
+
+move_left=<< -1m
+move_left_ctrl=<< -10m
+
+move_right=+1m >>
+move_right_ctrl=+10m >>
+
+reset=Reset
+
+clear_supply_reel=Clear supply reel
+clear_receiving_reel=Clear receiving reel
+
+tooltip_move_left=Move ribbon -1 m (Ctrl = -10 m)
+tooltip_move_right=Move ribbon +1 m (Ctrl = +10 m)
+tooltip_start_pause=Start or pause simulation
+
+tooltip_reset=Reset whole simulation
+tooltip_clear_supply=Empty supply queue
+tooltip_clear_receiving=Empty receiving queue
+
+queue=Queue
+processing=Processing
+receiving=Receiving
+
+apply=Apply
+delete=Delete
+
+move_up=Move up
+move_down=Move down
+
+type=Type
+length=Length
+total=Total
+eta=ETA
+
+tank_color=Color
+
+queue_list=Queue list
+date=Date
+notes=Notes
+
+total_film=TOTAL film
+total_leader=TOTAL leader
+
+leader_name=Leader

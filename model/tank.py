@@ -1,4 +1,4 @@
-# tank.py
+# model/tank.py
 
 from dataclasses import dataclass, asdict
 

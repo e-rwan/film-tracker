@@ -1,4 +1,4 @@
-# main_window.py
+# ui/main_window.py
 
 import json
 import os
@@ -11,9 +11,7 @@ from PySide6.QtGui import QGuiApplication, QColor, QFont, QTextDocument, QDeskto
 from PySide6.QtWidgets import (
 	QApplication,
 	QDoubleSpinBox,
-	QFormLayout,
 	QFrame,
-	QGroupBox,
 	QHBoxLayout,
 	QLabel,
 	QLineEdit,
@@ -21,16 +19,12 @@ from PySide6.QtWidgets import (
 	QToolButton,
 	QSizePolicy,
 	QTabWidget,
-	QTextEdit,
 	QVBoxLayout,
 	QWidget,
 	QColorDialog,
-	QSplitter,
-	QDialog,
-	QFileDialog
+	QSplitter
 )
 from PySide6.QtPrintSupport import (
-    QPrintDialog,
     QPrinter,
 )
 
@@ -39,6 +33,7 @@ from model.ribbon_model import RibbonModel
 from model.tank import Tank
 from ui.process_widget import ProcessWidget
 from ui.segment_editor import SegmentEditor
+from utils.lang import lang
 
 class MainWindow(QWidget):
 	"""
@@ -79,7 +74,7 @@ class MainWindow(QWidget):
 ## BUILD
 	def build_ui(self):
 
-		self.setWindowTitle("Film Tracker V5")
+		self.setWindowTitle(lang.tr("window_title"))
 
 		root = QVBoxLayout(self)
 
@@ -89,8 +84,8 @@ class MainWindow(QWidget):
 		process_tab = QWidget()
 		settings_tab = QWidget()
 
-		tabs.addTab(process_tab, "Process")
-		tabs.addTab(settings_tab, "Settings")
+		tabs.addTab(process_tab, lang.tr("process"))
+		tabs.addTab(settings_tab, lang.tr("settings"))
 
 		self.build_process_tab(process_tab)
 		self.build_settings_tab(settings_tab)
@@ -134,7 +129,7 @@ class MainWindow(QWidget):
 
 		# speed preset
 		layout.addWidget(
-			QLabel("Speed presets")
+			QLabel(lang.tr("speed_presets"))
 		)
 		self.speed_presets_edit = QLineEdit()
 		layout.addWidget(
@@ -155,7 +150,7 @@ class MainWindow(QWidget):
 
 		# add tank button
 		buttons = QHBoxLayout()
-		btn_add = QPushButton("Add tank")
+		btn_add = QPushButton(lang.tr("add_tank"))
 		btn_add.clicked.connect(
 			self.add_tank
 		)
@@ -207,7 +202,7 @@ class MainWindow(QWidget):
 			setattr(t, "name", text)
 		)
 
-		# Tank lenght
+		# Tank length
 		length = QDoubleSpinBox()
 		length.setMaximum(
 			1000
@@ -281,7 +276,7 @@ class MainWindow(QWidget):
 
 		self.model.tanks.append(
 			Tank(
-				name="New Tank",
+				name=lang.tr("new_tank"),
 				length=1.0,
 				color="#808080"
 			)
@@ -370,7 +365,7 @@ class MainWindow(QWidget):
 		self.leader_length.setValue(3)
 		self.leader_length.setMaximumWidth(120)
 
-		params.addWidget(QLabel("Speed"))
+		params.addWidget(QLabel(lang.tr("speed")))
 		params.addWidget(self.speed)
 
 		self.speed_preset_layout = QHBoxLayout()
@@ -388,17 +383,17 @@ class MainWindow(QWidget):
 
 		params.addSpacing(20)
 
-		params.addWidget(QLabel("Name"))
+		params.addWidget(QLabel(lang.tr("name")))
 		params.addWidget(self.film_name)
 
 		params.addSpacing(20)
 
-		params.addWidget(QLabel("Film"))
+		params.addWidget(QLabel(lang.tr("film")))
 		params.addWidget(self.film_length)
 
 		params.addSpacing(20)
 
-		params.addWidget(QLabel("Leader"))
+		params.addWidget(QLabel(lang.tr("leader")))
 		params.addWidget(self.leader_length)
 
 		params.addSpacing(20)
@@ -407,17 +402,17 @@ class MainWindow(QWidget):
 		button_font.setBold(True)
 		button_font.setPointSize(12)
 
-		b = QPushButton("➠ Add to queue")
+		b = QPushButton(lang.tr("add_to_queue"))
 		b.clicked.connect(self.add_film)
 		b.setFont(button_font)
 		params.addWidget(b)
 
-		b = QPushButton("➥ Attach to film")
+		b = QPushButton(lang.tr("attach_to_film"))
 		b.clicked.connect(self.attach_to_film)
 		b.setFont(button_font)
 		params.addWidget(b)
 
-		b = QPushButton("🖶 Print queue")
+		b = QPushButton(lang.tr("print_queue"))
 		b.clicked.connect(self.print_queue)
 		# b.setFont(button_font)
 		params.addWidget(b)
@@ -441,10 +436,10 @@ class MainWindow(QWidget):
 		btnsPlay.addWidget(self.move_left_btn)
 
 		self.move_left_btn.setToolTip(
-			"Move ribbon -1 m (Ctrl = -10 m)"
+			lang.tr("tooltip_move_left")
 		)
 
-		self.start_pause_btn = QPushButton("▶ Start")
+		self.start_pause_btn = QPushButton(lang.tr("start"))
 
 		self.start_pause_btn.clicked.connect(
 			self.toggle_simulation
@@ -453,7 +448,7 @@ class MainWindow(QWidget):
 		btnsPlay.addWidget(self.start_pause_btn)
 
 		self.start_pause_btn.setToolTip(
-			"Start|Pause simulation"
+			lang.tr("tooltip_start_pause")
 		)
 
 		self.move_right_btn = QPushButton("+1m >>")
@@ -465,7 +460,7 @@ class MainWindow(QWidget):
 		btnsPlay.addWidget(self.move_right_btn)
 
 		self.move_right_btn.setToolTip(
-			"Move ribbon +1 m (Ctrl = +10 m)"
+			lang.tr("tooltip_move_right")
 		)
 
 		font = self.start_pause_btn.font()
@@ -481,31 +476,27 @@ class MainWindow(QWidget):
 
 		btnsClear = QHBoxLayout()
 
-		b = QPushButton("Reset")
-		b.clicked.connect(self.reset)
-		btnsClear.addWidget(b)
-
-		b.setToolTip(
-			"Reset whole simulation"
-		)
-
-		b = QPushButton("Clear supply reel")
+		b = QPushButton(lang.tr("clear_supply_reel"))
 		b.clicked.connect(self.clear_supply_reel)
 		btnsClear.addWidget(b)
-
 		b.setToolTip(
-			"Empty suplly queue list"
+			lang.tr("tooltip_clear_supply")
 		)
 
-		b = QPushButton("Clear receiving reel")
+		b = QPushButton(lang.tr("reset"))
+		b.clicked.connect(self.reset)
+		btnsClear.addWidget(b)
+		b.setToolTip(
+			lang.tr("tooltip_reset")
+		)
+
+		b = QPushButton(lang.tr("clear_receiving_reel"))
 		b.clicked.connect(
 			self.clear_receiving_reel
 		)
-
 		btnsClear.addWidget(b)
-
 		b.setToolTip(
-			"Empty receiving queue list"
+			lang.tr("tooltip_clear_receiving")
 		)
 
 		process.addLayout(btnsClear)
@@ -808,7 +799,7 @@ class MainWindow(QWidget):
 		if self.timer.isActive():
 			self.timer.stop()
 			self.start_pause_btn.setText(
-				"▶ Start"
+				lang.tr("start")
 			)
 
 		else:
@@ -817,7 +808,7 @@ class MainWindow(QWidget):
 			)
 			self.timer.start(50)
 			self.start_pause_btn.setText(
-				"❚❚ Pause"
+				lang.tr("pause")
 			)
 
 	def tick(self):
@@ -925,7 +916,7 @@ class MainWindow(QWidget):
 			self.build_segment_rows(
 				queue_start,
 				queue_end,
-				"Queue",
+				"queue",
 				self.speed.value()
 			)
 		)
@@ -934,7 +925,7 @@ class MainWindow(QWidget):
 			self.build_segment_rows(
 				machine_start,
 				machine_end,
-				"Processing",
+				"processing",
 				self.speed.value()
 			)
 		)
@@ -943,7 +934,7 @@ class MainWindow(QWidget):
 			self.build_segment_rows(
 				receiving_start,
 				receiving_end,
-				"Receiving"
+				"receiving"
 			)
 		)
 
@@ -991,7 +982,7 @@ class MainWindow(QWidget):
 
 ## ACTIONS
 	def reset(self):
-		self.start_pause_btn.setText("Start")
+		self.start_pause_btn.setText(lang.tr("start"))
 		self.timer.stop()
 		self.model.segments.clear()
 		self.received_film=0.0
@@ -1101,7 +1092,7 @@ class MainWindow(QWidget):
 			else:
 				total_leader_lenght += seg.length
 				if seg.length <= 2: continue
-				name = "Leader"
+				name = lang.tr("leader")
 				cssclass = "leader"
 
 			rows.append(
@@ -1150,12 +1141,12 @@ class MainWindow(QWidget):
 
 		<body>
 
-		<h1>Queue List</h1>
+		<h1>{lang.tr("queue_list")}</h1>
 
 		<p>
 			Date: {date}
 		</p>
-
+		<br>
 		<table
 			border="1"
 			cellspacing="0"
@@ -1164,9 +1155,9 @@ class MainWindow(QWidget):
 		>
 
 		<tr>
-			<th width="35%">Name</th>
-			<th width="15%">Length</th>
-			<th width="50%">Notes</th>
+			<th width="35%">{lang.tr("name")}</th>
+			<th width="15%">{lang.tr("length")}</th>
+			<th width="50%">{lang.tr("notes")}</th>
 		</tr>
 
 		{''.join(rows)}
@@ -1175,7 +1166,7 @@ class MainWindow(QWidget):
 			<td colspan=3>
 				TOTAL film: {total_film_lenght}
 				<br>
-				TOTAL leader: {total_leader_lenght}
+				TOTAL {lang.tr("leader")}: {total_leader_lenght}
 			</td>
 		</tr>
 		</table>

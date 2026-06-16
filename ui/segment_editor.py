@@ -1,4 +1,4 @@
-# segment_editor.py
+# ui/segment_editor.py
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
@@ -16,6 +16,11 @@ from PySide6.QtWidgets import (
 	QHeaderView
 )
 
+from utils.lang import lang
+
+ZONE_QUEUE = "queue"
+ZONE_PROCESSING = "processing"
+ZONE_RECEIVING = "receiving"
 
 class SegmentEditor(QWidget):
 
@@ -52,7 +57,7 @@ class SegmentEditor(QWidget):
 		toolbar.addSpacing(20)
 
 		toolbar.addWidget(
-			QLabel("Name")
+			QLabel(lang.tr("name"))
 		)
 
 		self.name_edit = QLineEdit()
@@ -62,7 +67,7 @@ class SegmentEditor(QWidget):
 		)
 
 		toolbar.addWidget(
-			QLabel("Length")
+			QLabel(lang.tr("length"))
 		)
 
 		self.length_spin = QDoubleSpinBox()
@@ -73,11 +78,11 @@ class SegmentEditor(QWidget):
 		)
 
 		self.btn_apply = QPushButton(
-			"Apply"
+			lang.tr("apply")
 		)
 
 		self.btn_delete = QPushButton(
-			"Delete"
+			lang.tr("delete")
 		)
 
 		toolbar.addWidget(
@@ -96,15 +101,15 @@ class SegmentEditor(QWidget):
 
 		# Tables
 		self.queue_table, queue_group = (
-			self.create_table_group("Queue")
+			self.create_table_group(lang.tr(ZONE_QUEUE))
 		)
 
 		self.processing_table, processing_group = (
-			self.create_table_group("Processing")
+			self.create_table_group(lang.tr(ZONE_PROCESSING))
 		)
 
 		self.receiving_table, receiving_group = (
-			self.create_table_group("Receiving")
+			self.create_table_group(lang.tr(ZONE_RECEIVING))
 		)
 
 		self.tables = [
@@ -234,10 +239,10 @@ class SegmentEditor(QWidget):
 
 		table.setHorizontalHeaderLabels(
 			[
-				"Name",
-				"Type",
-				"Total",
-				"ETA"
+				lang.tr("name"),
+				lang.tr("type"),
+				lang.tr("total"),
+				lang.tr("eta")
 			]
 		)
 
@@ -305,19 +310,19 @@ class SegmentEditor(QWidget):
 		queue_rows = [
 			r
 			for r in rows
-			if r["zone"] == "Queue"
+			if r["zone"] == ZONE_QUEUE
 		]
 
 		processing_rows = [
 			r
 			for r in rows
-			if r["zone"] == "Processing"
+			if r["zone"] == ZONE_PROCESSING
 		]
 
 		receiving_rows = [
 			r
 			for r in rows
-			if r["zone"] == "Receiving"
+			if r["zone"] == ZONE_RECEIVING
 		]
 
 		self.populate_table(
