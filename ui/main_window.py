@@ -22,7 +22,8 @@ from PySide6.QtWidgets import (
 	QVBoxLayout,
 	QWidget,
 	QColorDialog,
-	QSplitter
+	QSplitter,
+	QInputDialog
 )
 from PySide6.QtPrintSupport import (
     QPrinter,
@@ -412,6 +413,11 @@ class MainWindow(QWidget):
 		b.setFont(button_font)
 		params.addWidget(b)
 
+		b = QPushButton(lang.tr("add_separator"))
+		b.clicked.connect(self.add_separator)
+		b.setFont(button_font)
+		params.addWidget(b)
+
 		b = QPushButton(lang.tr("print_queue"))
 		b.clicked.connect(self.print_queue)
 		# b.setFont(button_font)
@@ -613,7 +619,7 @@ class MainWindow(QWidget):
 				- max(seg_start, zone_start)
 			)
 
-			if visible <= 0:
+			if (visible <= 0):
 				continue
 
 			eta = ""
@@ -712,7 +718,14 @@ class MainWindow(QWidget):
 		segment.length = length
 
 		if segment.is_film:
+			segment.length = length
 			segment.name = name
+
+		elif segment.is_separator:
+			segment.name = name
+
+		else:
+			segment.length = length
 
 		self.refresh()
 
@@ -744,6 +757,12 @@ class MainWindow(QWidget):
 		Add a new film and its leader to the ribbon.
 		"""
 
+		if (
+			self.film_length.value() <= 0
+			and self.leader_length.value() <= 0
+		):
+			return
+
 		self.model.add_film(
 			self.film_length.value(),
 			self.leader_length.value(),
@@ -760,11 +779,37 @@ class MainWindow(QWidget):
 		If queue already contains ribbon, fallback to the
 		normal queue insertion.
 		"""
+		
+		if (
+			self.film_length.value() <= 0
+			and self.leader_length.value() <= 0
+		):
+			return
 
 		self.model.attach_film(
 			self.film_length.value(),
 			self.leader_length.value(),
 			self.film_name.text()
+		)
+
+		self.refresh()
+
+	def add_separator(self):
+
+		name, ok = QInputDialog.getText(
+			self,
+			lang.tr("add_separator"),
+			lang.tr("separator_name")
+		)
+
+		if not ok:
+			return
+
+		if not name.strip():
+			return
+
+		self.model.add_separator(
+			name.strip()
 		)
 
 		self.refresh()
@@ -1089,21 +1134,33 @@ class MainWindow(QWidget):
 				total_film_lenght += seg.length
 				name = seg.name
 				cssclass = "film"
+			elif seg.is_separator:
+				name = seg.name
+				cssclass = "separator"				
 			else:
 				total_leader_lenght += seg.length
 				if seg.length <= 2: continue
 				name = lang.tr("leader")
 				cssclass = "leader"
 
-			rows.append(
-				f"""
-				<tr class="{cssclass}">
-					<td>{name}</td>
-					<td>{seg.length:.1f} m</td>
-					<td style="height:40px">&nbsp;</td>
-				</tr>
-				"""
-			)
+			if seg.is_separator:
+				rows.append(
+					f"""
+					<tr class="{cssclass}">
+						<td colspan=3>{name}</td>
+					</tr>
+					"""
+				)
+			else:
+				rows.append(
+					f"""
+					<tr class="{cssclass}">
+						<td>{name}</td>
+						<td>{seg.length:.1f} m</td>
+						<td style="height:40px">&nbsp;</td>
+					</tr>
+					"""
+				)
 
 		return f"""
 		<html>
@@ -1135,6 +1192,13 @@ class MainWindow(QWidget):
 				}}
 				.film td{{
 					font-weight: bold;
+				}}
+				.separator td{{
+					text-align: center;
+					font-weight: bold;
+					font-size: 16px;
+					border-top-width: 2px;
+					border-bottom-width: 2px;
 				}}
 			</style>
 		</head>

@@ -1,6 +1,7 @@
 # ui/segment_editor.py
 
 from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
 	QWidget,
 	QVBoxLayout,
@@ -194,14 +195,23 @@ class SegmentEditor(QWidget):
 
 		if segment.is_film:
 			self.name_edit.setEnabled(True)
-
+			self.length_spin.setEnabled(True)
 			self.name_edit.setText(
 				segment.name
 			)
+
+		elif segment.is_separator:
+			self.name_edit.setEnabled(True)
+			self.length_spin.setEnabled(False)
+			self.name_edit.setText(
+				segment.name
+			)
+
 		else:
 			self.name_edit.setEnabled(False)
+			self.length_spin.setEnabled(True)
 			self.name_edit.setText(
-				"<leader>"
+				lang.tr("leader")
 			)
 
 		self.length_spin.setValue(
@@ -346,6 +356,7 @@ class SegmentEditor(QWidget):
 		rows
 	):
 
+		table.clearSpans()
 		table.setRowCount(
 			len(rows)
 		)
@@ -354,18 +365,43 @@ class SegmentEditor(QWidget):
 
 			segment = row["segment"]
 
-			values = [
-				segment.name or "",
-				segment.type,
-				f"{row['visible']:.1f}m ({segment.length:.1f}m)",
-				row["eta"]
-			]
+			if segment.is_separator:
+				values = [
+					f"──── {segment.name} ────",
+					"",
+					"",
+					""
+				]
+			else:
+				values = [
+					segment.name or "",
+					segment.type,
+					f"{row['visible']:.1f}m ({segment.length:.1f}m)",
+					row["eta"]
+				]
 
 			for col, value in enumerate(values):
 
 				item = QTableWidgetItem(
 					str(value)
 				)
+
+				if segment.is_separator:
+					font = item.font()
+					font.setBold(True)
+					item.setFont(font)
+					item.setTextAlignment(
+						int(Qt.AlignmentFlag.AlignCenter)
+					)
+					item.setBackground(
+						QColor("#666666")
+					)
+					table.setSpan(
+						row_index,
+						0,
+						1,
+						4
+					)
 
 				item.setData(
 					Qt.ItemDataRole.UserRole,

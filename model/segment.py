@@ -35,6 +35,15 @@ class Segment:
 			segment_id
 		)
 
+	@classmethod
+	def separator(cls, name, segment_id):
+		return cls(
+			"separator",
+			0.01,
+			segment_id,
+			name=name
+		)
+
 	@property
 	def is_film(self):
 		return self.type == "film"
@@ -42,3 +51,7 @@ class Segment:
 	@property
 	def is_lead(self):
 		return self.type == "leader"
+
+	@property
+	def is_separator(self):
+		return self.type == "separator"

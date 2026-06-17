@@ -56,9 +56,10 @@ class RibbonModel:
 		if not film_name:
 			film_name = f"film {self.next_film_id()}"
 
-		self.segments.append(Segment.film(film_length, self.next_segment_id(), film_name))
-
-		self.segments.append(Segment.leader(leader_length, self.next_segment_id()))
+		if film_length > 0:
+			self.segments.append(Segment.film(film_length, self.next_segment_id(), film_name))
+		if leader_length > 0:
+			self.segments.append(Segment.leader(leader_length, self.next_segment_id()))
 
 	def attach_film(self, film_length, leader_length, film_name=None):
 		"""
@@ -82,17 +83,27 @@ class RibbonModel:
 		if not film_name:
 			film_name = f"film {self.next_film_id()}"
 
-		self.segments.append(
-			Segment.film(
-				film_length,
-				self.next_segment_id(),
-				film_name
+		if film_length > 0:
+			self.segments.append(
+				Segment.film(
+					film_length,
+					self.next_segment_id(),
+					film_name
+				)
 			)
-		)
 
+		if leader_length > 0:
+			self.segments.append(
+				Segment.leader(
+					leader_length,
+					self.next_segment_id()
+				)
+			)
+
+	def add_separator(self, name):
 		self.segments.append(
-			Segment.leader(
-				leader_length,
+			Segment.separator(
+				name,
 				self.next_segment_id()
 			)
 		)

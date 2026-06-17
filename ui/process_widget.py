@@ -266,6 +266,37 @@ class ProcessWidget(QWidget):
 				/ (machine_end - machine_start)
 			)
 
+			# SEPARATOR
+			if seg.is_separator:
+				x = x1
+				pen = QPen(
+					QColor(200, 200, 200)
+				)
+				if seg is self.selected_segment:
+					pen = QPen(
+						QColor(0, 255, 0)
+					)
+				pen.setWidth(2)
+				p.setPen(pen)
+				p.drawLine(
+					int(x),
+					y + h / 2 - 15,
+					int(x),
+					y + h / 2 + 55
+				)
+				font = p.font()
+				p.setFont(font)
+				text_width = (
+					p.fontMetrics()
+					.horizontalAdvance(seg.name)
+				)
+				p.drawText(
+					int(x - text_width / 2),
+					int(y + h / 2 - 20),
+					seg.name
+				)
+				continue
+
 			if seg.is_film:
 				p.setBrush(
 					QColor(
