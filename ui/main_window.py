@@ -7,7 +7,7 @@ import math
 from datetime import datetime
 from pathlib import Path
 from PySide6.QtCore import QTimer, Qt, QEvent, QElapsedTimer, QUrl
-from PySide6.QtGui import QGuiApplication, QColor, QFont, QTextDocument, QDesktopServices
+from PySide6.QtGui import QGuiApplication, QColor, QFont, QTextDocument, QDesktopServices, QPen
 from PySide6.QtWidgets import (
 	QApplication,
 	QDoubleSpinBox,
@@ -52,6 +52,7 @@ class MainWindow(QWidget):
 		self.model.tanks = []
 
 		self.selected_segment = None
+		self.selected_segment_id = None
 
 		self.speed_presets = []
 
@@ -105,6 +106,9 @@ class MainWindow(QWidget):
 
 		self.segment_editor = SegmentEditor()
 		self.view = ProcessWidget()
+		self.view.segmentClicked.connect(
+			self.on_process_segment_clicked
+		)
 		self.connect_segment_editor()
 
 		splitter.addWidget(
@@ -115,39 +119,40 @@ class MainWindow(QWidget):
 			self.view
 		)
 
-		splitter.setStretchFactor(0, 2)
-		splitter.setStretchFactor(1, 1)
+		splitter.setStretchFactor(0, 3)
+		splitter.setStretchFactor(1, 2)
 
 		process.addWidget(
 			splitter,
 			1
 		)
 
-## SETTINGS TAB 
+	## SETTINGS TAB 
 	def build_settings_tab(self, tab):	
 
 		layout = QVBoxLayout(tab)
 
 		# speed preset
+		self.speed_presets_edits = []
 		layout.addWidget(
 			QLabel(lang.tr("speed_presets"))
 		)
-		self.speed_presets_edit = QLineEdit()
-		layout.addWidget(
-			self.speed_presets_edit
-		)
+		preset_row = QHBoxLayout()
+		for _ in range(4):
+			spin = QDoubleSpinBox()
+			spin.setMaximum(30)
+			spin.setSuffix(" ft/min")
+			spin.setMaximumWidth(120)
+			self.speed_presets_edits.append(
+				spin
+			)
+			preset_row.addWidget(spin)
+		preset_row.addStretch()
+		layout.addLayout(preset_row)
 
 		# tank list
 		self.tank_container = QVBoxLayout()
-		layout.addLayout(
-			self.tank_container
-		)
-		self.speed_presets_edit.setText(
-			", ".join(
-				str(v)
-				for v in self.speed_presets
-			)
-		)
+		layout.addLayout(self.tank_container)
 
 		# add tank button
 		buttons = QHBoxLayout()
@@ -343,88 +348,81 @@ class MainWindow(QWidget):
 		self.save_settings()
 		self.refresh()
 
-## MAIN TAB
+	## MAIN TAB
 	def build_params_bar(self, process):
 
 		params = QHBoxLayout()
 
+		# speed presets
 		self.speed = QDoubleSpinBox()
 		self.speed.setMaximum(10000)
 		self.speed.setSuffix(" ft/min")
 		self.speed.setMaximumWidth(120)
-
-		self.film_name = QLineEdit()
-
-		self.film_length = QDoubleSpinBox()
-		self.film_length.setMaximum(10000)
-		self.film_length.setSuffix(" m")
-		self.film_length.setMaximumWidth(120)
-
-		self.leader_length = QDoubleSpinBox()
-		self.leader_length.setMaximum(100)
-		self.leader_length.setSuffix(" m")
-		self.leader_length.setValue(3)
-		self.leader_length.setMaximumWidth(120)
-
-		params.addWidget(QLabel(lang.tr("speed")))
+		params.addWidget(QLabel(lang.tr("speed_presets")))
 		params.addWidget(self.speed)
-
+		
 		self.speed_preset_layout = QHBoxLayout()
 		params.addLayout(
 			self.speed_preset_layout
 		)
 
-		params.addSpacing(20)
+		params.addWidget(self.create_vline())
 
-		line = QFrame()
-		line.setFrameShape(QFrame.Shape.VLine)
-		line.setFrameShadow(QFrame.Shadow.Sunken)
-
-		params.addWidget(line)
-
-		params.addSpacing(20)
-
+		# film name
+		self.film_name = QLineEdit()
 		params.addWidget(QLabel(lang.tr("name")))
 		params.addWidget(self.film_name)
 
-		params.addSpacing(20)
-
+		# film length
+		self.film_length = QDoubleSpinBox()
+		self.film_length.setMaximum(10000)
+		self.film_length.setSuffix(" m")
+		self.film_length.setMaximumWidth(120)
 		params.addWidget(QLabel(lang.tr("film")))
 		params.addWidget(self.film_length)
 
-		params.addSpacing(20)
-
+		# leader length
+		self.leader_length = QDoubleSpinBox()
+		self.leader_length.setMaximum(1000)
+		self.leader_length.setSuffix(" m")
+		self.leader_length.setValue(3)
+		self.leader_length.setMaximumWidth(120)
 		params.addWidget(QLabel(lang.tr("leader")))
 		params.addWidget(self.leader_length)
 
-		params.addSpacing(20)
+		params.addWidget(self.create_vline())
 
+		## buttons
 		button_font = self.font()
 		button_font.setBold(True)
-		button_font.setPointSize(12)
 
+		# add to queue
 		b = QPushButton(lang.tr("add_to_queue"))
 		b.clicked.connect(self.add_film)
 		b.setFont(button_font)
 		params.addWidget(b)
 
+		# attach to film
 		b = QPushButton(lang.tr("attach_to_film"))
 		b.clicked.connect(self.attach_to_film)
 		b.setFont(button_font)
 		params.addWidget(b)
 
+		params.addWidget(self.create_vline())
+
+		# add separator
 		b = QPushButton(lang.tr("add_separator"))
 		b.clicked.connect(self.add_separator)
 		b.setFont(button_font)
 		params.addWidget(b)
 
+		params.addWidget(self.create_vline())
+
+		# print queue
 		b = QPushButton(lang.tr("print_queue"))
 		b.clicked.connect(self.print_queue)
 		# b.setFont(button_font)
 		params.addWidget(b)
-
-
-		params.addStretch()
 
 		process.addLayout(params)
 
@@ -470,6 +468,9 @@ class MainWindow(QWidget):
 		)
 
 		font = self.start_pause_btn.font()
+		self.start_pause_btn.setStyleSheet(
+			"background-color: #344B34;"
+		)
 		font.setBold(True)
 
 		self.move_left_btn.setFont(font)
@@ -592,13 +593,36 @@ class MainWindow(QWidget):
 
 		return False
 
-## SEGMENTS
-	def on_segment_selected(self, segment):
+	def create_vline(self):
 
-		self.selected_segment = segment
+		container = QWidget()
+
+		layout = QVBoxLayout(container)
+		layout.setContentsMargins(
+			10, 0, 10, 0
+		)
+
+		line = QFrame()
+
+		line.setFrameShape(
+			QFrame.Shape.VLine
+		)
+
+		line.setFrameShadow(
+			QFrame.Shadow.Sunken
+		)
+
+		layout.addWidget(line)
+
+		return container
+
+## SEGMENTS
+	def on_segment_selected(self, segment_id):
+
+		self.selected_segment_id = segment_id
 
 		self.view.set_selected_segment(
-			segment
+			segment_id
 		)
 
 	def build_segment_rows(
@@ -647,9 +671,9 @@ class MainWindow(QWidget):
 
 	def delete_selected_segment(self):
 
-		segment = self.selected_segment
+		segment = self.get_selected_segment()
 
-		if segment is None:
+		if self.selected_segment_id is None or segment is None:
 			return
 
 		if segment not in self.model.segments:
@@ -668,7 +692,7 @@ class MainWindow(QWidget):
 
 	def move_selected_segment(self, offset):
 
-		segment = self.selected_segment
+		segment = self.get_selected_segment()
 
 		if segment is None:
 			return
@@ -694,14 +718,18 @@ class MainWindow(QWidget):
 
 		self.refresh()
 
-		self.selected_segment = segment
+		self.selected_segment_id = segment.id
 
 		self.segment_editor.select_segment(
-			segment
+			segment.id
+		)
+
+		self.segment_editor.load_segment(
+				segment
 		)
 
 		self.view.set_selected_segment(
-			segment
+			segment.id
 		)
 
 	def apply_selected_segment(
@@ -710,7 +738,7 @@ class MainWindow(QWidget):
 		length
 	):
 
-		segment = self.selected_segment
+		segment = self.get_selected_segment()
 
 		if segment is None:
 			return
@@ -750,6 +778,18 @@ class MainWindow(QWidget):
 		self.segment_editor.applyRequested.connect(
 			self.apply_selected_segment
 		)
+
+	def get_selected_segment(self):
+
+		if self.selected_segment_id is None:
+			return None
+
+		for seg in self.model.segments:
+
+			if seg.id == self.selected_segment_id:
+				return seg
+
+		return None
 
 ## SIMULATION
 	def add_film(self):
@@ -843,6 +883,9 @@ class MainWindow(QWidget):
 
 		if self.timer.isActive():
 			self.timer.stop()
+			self.start_pause_btn.setStyleSheet(
+				"background-color: #344B34;"
+			)
 			self.start_pause_btn.setText(
 				lang.tr("start")
 			)
@@ -852,6 +895,9 @@ class MainWindow(QWidget):
 				self.elapsed_timer.elapsed()
 			)
 			self.timer.start(50)
+			self.start_pause_btn.setStyleSheet(
+				"background-color: #661D1D;"
+			)
 			self.start_pause_btn.setText(
 				lang.tr("pause")
 			)
@@ -909,12 +955,11 @@ class MainWindow(QWidget):
 			"speed_presets",
 			[]
 		)
-		self.speed_presets_edit.setText(
-			", ".join(
-				str(v)
-				for v in self.speed_presets
-			)
-		)
+		for spin, value in zip(
+			self.speed_presets_edits,
+			self.speed_presets
+		):
+			spin.setValue(value)
 		self.rebuild_speed_presets()
 
 		# film length
@@ -985,9 +1030,14 @@ class MainWindow(QWidget):
 
 		self.segment_editor.populate(rows)
 
-		if self.selected_segment is not None:
+		segment = self.get_selected_segment()
+
+		if self.selected_segment_id is not None and segment is not None:
 			self.segment_editor.select_segment(
-				self.selected_segment
+				segment.id
+			)
+			self.segment_editor.load_segment(
+				segment
 			)
 
 		total_queue = max(
@@ -1054,9 +1104,9 @@ class MainWindow(QWidget):
 	def save_settings(self):
 		try:
 			self.speed_presets = [
-				float(v.strip())
-				for v in self.speed_presets_edit.text().split(",")
-				if v.strip()
+				spin.value()
+				for spin in self.speed_presets_edits
+				if spin.value() > 0
 			]
 			self.rebuild_speed_presets()
 		except ValueError:
@@ -1084,6 +1134,33 @@ class MainWindow(QWidget):
 				fp,
 				indent=2
 			)
+
+	def on_process_segment_clicked(
+		self,
+		segment
+	):
+
+		self.selected_segment_id = segment.id
+
+		self.segment_editor.select_segment(
+			segment.id
+		)
+
+		self.segment_editor.load_segment(
+				segment
+		)
+
+		self.segment_editor.name_edit.setText(
+			segment.name or ""
+		)
+
+		self.segment_editor.length_spin.setValue(
+			segment.length
+		)
+
+		self.view.set_selected_segment(
+			segment.id
+		)
 
 # PRINT
 	def print_queue(self):

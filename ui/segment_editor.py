@@ -150,78 +150,6 @@ class SegmentEditor(QWidget):
 			self._emit_apply
 		)
 
-	def set_segment_enabled(self, enabled):
-
-		self.btn_up.setEnabled(enabled)
-		self.btn_down.setEnabled(enabled)
-
-		self.name_edit.setEnabled(enabled)
-
-		self.length_spin.setEnabled(
-			enabled
-		)
-
-		self.btn_apply.setEnabled(
-			enabled
-		)
-
-		self.btn_delete.setEnabled(
-			enabled
-		)
-
-	def _selection_changed(self, table):
-
-		if table is None:
-			return
-
-		items = table.selectedItems()
-
-		if not items:
-			return
-
-		item = table.item(
-			items[0].row(),
-			0
-		)
-
-		if item is None:
-			return
-
-		segment = item.data(
-			Qt.ItemDataRole.UserRole
-		)
-
-		self.set_segment_enabled(True)
-
-		if segment.is_film:
-			self.name_edit.setEnabled(True)
-			self.length_spin.setEnabled(True)
-			self.name_edit.setText(
-				segment.name
-			)
-
-		elif segment.is_separator:
-			self.name_edit.setEnabled(True)
-			self.length_spin.setEnabled(False)
-			self.name_edit.setText(
-				segment.name
-			)
-
-		else:
-			self.name_edit.setEnabled(False)
-			self.length_spin.setEnabled(True)
-			self.name_edit.setText(
-				lang.tr("leader")
-			)
-
-		self.length_spin.setValue(
-			segment.length
-		)
-
-		self.segmentSelected.emit(
-			segment
-		)
-
 	def _emit_apply(self):
 
 		self.applyRequested.emit(
@@ -269,17 +197,20 @@ class SegmentEditor(QWidget):
 				padding: 1px 5px;
 			}
 			QTableView::item:selected {
-				background-color: black;
-				color: white;
+				background-color: lightgray;
+				color: black;
+				font-weight: bold;
 			}
 			QTableView::item:selected:active {
-				background-color: black;
-				color: white;
+				background-color: lightgray;
+				color: black;
+				font-weight: bold;
 			}
 
 			QTableView::item:selected:!active {
-				background-color: black;
-				color: white;
+				background-color: lightgray;
+				color: black;
+				font-weight: bold;
 			}
 		""")
 
@@ -414,14 +345,59 @@ class SegmentEditor(QWidget):
 					item
 				)
 
-	def select_segment(self, segment):
+	def set_segment_enabled(self, enabled):
+
+		self.btn_up.setEnabled(enabled)
+		self.btn_down.setEnabled(enabled)
+
+		self.name_edit.setEnabled(enabled)
+
+		self.length_spin.setEnabled(
+			enabled
+		)
+
+		self.btn_apply.setEnabled(
+			enabled
+		)
+
+		self.btn_delete.setEnabled(
+			enabled
+		)
+
+	def _selection_changed(self, table):
+
+		if table is None:
+			return
+
+		items = table.selectedItems()
+
+		if not items:
+			return
+
+		item = table.item(
+			items[0].row(),
+			0
+		)
+
+		if item is None:
+			return
+
+		segment = item.data(
+			Qt.ItemDataRole.UserRole
+		)
+
+		self.load_segment(segment)
+
+		self.segmentSelected.emit(
+			segment.id
+		)
+
+	def select_segment(self, segment_id):
 
 		for table in self.tables:
-
 			table.blockSignals(True)
 
 		try:
-
 			for table in self.tables:
 
 				table.clearSelection()
@@ -437,12 +413,35 @@ class SegmentEditor(QWidget):
 						Qt.ItemDataRole.UserRole
 					)
 
-					if row_segment is segment:
-
+					if row_segment.id == segment_id:
 						table.selectRow(row)
 						break
 
 		finally:
-
 			for table in self.tables:
 				table.blockSignals(False)
+
+	def load_segment(self, segment):
+
+		self.set_segment_enabled(True)
+
+		if segment.is_film:
+			self.name_edit.setEnabled(True)
+			self.length_spin.setEnabled(True)
+			self.name_edit.setText(segment.name)
+
+		elif segment.is_separator:
+			self.name_edit.setEnabled(True)
+			self.length_spin.setEnabled(False)
+			self.name_edit.setText(segment.name)
+
+		else:
+			self.name_edit.setEnabled(False)
+			self.length_spin.setEnabled(True)
+			self.name_edit.setText(
+				lang.tr("leader")
+			)
+
+		self.length_spin.setValue(
+			segment.length
+		)

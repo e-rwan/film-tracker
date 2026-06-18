@@ -2,7 +2,7 @@
 
 import math
 
-from PySide6.QtCore import QRectF, Qt
+from PySide6.QtCore import QRectF, Qt, Signal
 from PySide6.QtGui import QColor, QPainter, QPen
 from PySide6.QtWidgets import QWidget
 
@@ -21,6 +21,7 @@ class ProcessWidget(QWidget):
 	This widget is responsible only for rendering.
 	Business logic is handled by RibbonModel.
 	"""
+	segmentClicked = Signal(object)
 
 	def __init__(self):
 		super().__init__()
@@ -33,8 +34,9 @@ class ProcessWidget(QWidget):
 		self.received_length=0.0
 
 		self.selected_segment = None
+		self.selected_segment_id = None
 
-		self.setMinimumHeight(300)
+		self.segment_rects = []
 
 		self.reel_angle = 0.0
 
@@ -71,13 +73,20 @@ class ProcessWidget(QWidget):
 			width * process_len
 			/ (axis_end - axis_start)
 		)
+		tank_h = min(
+			400,
+			max(
+				100,
+				int(self.height() * 0.25)
+			)
+		)
 
 		return {
 			"process_len": process_len,
 			"process_x": process_x,
 			"process_w": process_w,
 			"tank_y": 80,
-			"tank_h": 100,
+			"tank_h": tank_h,
 		}
 
 	def _draw_headers(self, p):
@@ -197,6 +206,8 @@ class ProcessWidget(QWidget):
 		Draw ribbon segments visible in the machine.
 		"""
 
+		self.segment_rects.clear()
+
 		process_len = layout["process_len"]
 		process_x = layout["process_x"]
 		process_w = layout["process_w"]
@@ -272,7 +283,7 @@ class ProcessWidget(QWidget):
 				pen = QPen(
 					QColor(200, 200, 200)
 				)
-				if seg is self.selected_segment:
+				if seg.id == self.selected_segment_id:
 					pen = QPen(
 						QColor(0, 255, 0)
 					)
@@ -324,7 +335,7 @@ class ProcessWidget(QWidget):
 				)
 			)
 
-			if seg is self.selected_segment:
+			if seg.id == self.selected_segment_id:
 				pen = QPen(
 					QColor(
 						255,
@@ -341,11 +352,33 @@ class ProcessWidget(QWidget):
 					)
 				)
 
+			if seg.is_separator:
+				rect = QRectF(
+					x - 8,
+					y + h / 2 - 20,
+					16,
+					90
+				)
+			else:
+				rect = QRectF(
+					x1,
+					y + h / 2,
+					x2 - x1,
+					40
+				)
+
+			self.segment_rects.append(
+				(
+					rect,
+					seg
+				)
+			)
 
 			pen.setWidth(1)
 			pen.setStyle(
 				Qt.PenStyle.DashLine
 			)
+			p.drawRect(rect)
 
 			p.setPen(pen)
 
@@ -501,6 +534,11 @@ class ProcessWidget(QWidget):
 		center_x = x + diameter / 2
 		center_y = y + diameter / 2
 
+		pen =  QPen(Qt.GlobalColor.white)
+		
+		pen.setWidth(2)
+		p.setPen(pen)
+
 		# external circle
 		p.drawEllipse(
 			QRectF(
@@ -511,7 +549,10 @@ class ProcessWidget(QWidget):
 			)
 		)
 
-		# side holes
+		pen.setWidth(1)
+		p.setPen(pen)
+
+		# central holes
 		hub_diameter = diameter * 0.05
 
 		p.drawEllipse(
@@ -541,7 +582,7 @@ class ProcessWidget(QWidget):
 				center_y
 				+ math.sin(a) * hole_distance
 			)
-			# central hole
+			# side holes
 			p.drawEllipse(
 				QRectF(
 					hx - hole_radius,
@@ -551,9 +592,9 @@ class ProcessWidget(QWidget):
 				)
 			)
 
-	def set_selected_segment(self, segment):
+	def set_selected_segment(self, segment_id):
 
-		self.selected_segment = segment
+		self.selected_segment_id = segment_id
 		self.update()
 
 	def _darken_color(self, color, factor=0.45):
@@ -592,3 +633,24 @@ class ProcessWidget(QWidget):
 		self.received_length = received_length
 
 		self.update()
+
+	def mousePressEvent(self, event):
+
+		pos = event.position()
+
+		for rect, seg in reversed(
+			self.segment_rects
+		):
+
+			if rect.contains(pos):
+
+				self.segmentClicked.emit(
+					seg
+				)
+
+				return
+
+		super().mousePressEvent(
+			event
+		)
+

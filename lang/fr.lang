@@ -14,6 +14,7 @@ leader=Amorce
 
 add_to_queue=➠ Ajouter
 attach_to_film=➥ Raccorder
+add_separator=║ Marker
 print_queue=🖶 Imprimer
 
 start=▶ Marche
