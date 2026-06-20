@@ -1036,10 +1036,7 @@ class MainWindow(QWidget):
 			self.segment_editor.select_segment(
 				segment.id
 			)
-			self.segment_editor.load_segment(
-				segment
-			)
-
+			
 		total_queue = max(
 			0,
 			self.ribbon_length() - self.model.processed_length
