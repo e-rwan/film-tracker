@@ -8,11 +8,10 @@ from pathlib import Path
 
 def get_base_path() -> Path:
     if getattr(sys, 'frozen', False):
-        # Exécutable compilé (PyInstaller)
-        return Path(sys.executable).parent.parent
+        # PyInstaller
+        return Path(sys.executable).parent
     else:
-        # Script lancé en mode normal
-        return Path(__file__).resolve().parent
+        return Path(__file__).resolve().parent.parent
 
 
 BASE_PATH: Final[Path] = get_base_path()

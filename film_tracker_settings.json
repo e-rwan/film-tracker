@@ -10,7 +10,7 @@
   "leader_length": 1.0,
   "tanks": [
     {
-      "name": "Loading Elevator",
+      "name": "Elevator \ud83e\udc15",
       "length": 75.8,
       "color": "#2d2d2d"
     },
@@ -75,7 +75,7 @@
       "color": "#786552"
     },
     {
-      "name": "Take-up Elevator",
+      "name": " Elevator \ud83e\udc17",
       "length": 18.9,
       "color": "#2D2D2D"
     }

@@ -16,9 +16,11 @@ def main():
 	app = QApplication([])
 
 	app.setStyle("Fusion")
-	app.setWindowIcon(QIcon(ICON_PATH))
 
 	window = MainWindow()
+
+	app.setWindowIcon(QIcon(ICON_PATH))
+	
 	window.showMaximized()
 
 	app.exec()

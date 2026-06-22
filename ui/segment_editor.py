@@ -46,7 +46,7 @@ class SegmentEditor(QWidget):
 
 		layout = QVBoxLayout(self)
 
-		# Toolbar
+		## Toolbar
 		toolbar = QHBoxLayout()
 
 		self.btn_up = QPushButton("▲")
@@ -100,7 +100,7 @@ class SegmentEditor(QWidget):
 			toolbar
 		)
 
-		# Tables
+		## Tables
 		self.queue_table, queue_group = (
 			self.create_table_group(lang.tr(ZONE_QUEUE))
 		)
