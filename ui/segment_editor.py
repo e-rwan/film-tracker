@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
 )
 
 from utils.lang import lang
+from ui.widget import create_vline
 
 ZONE_QUEUE = "queue"
 ZONE_PROCESSING = "processing"
@@ -55,7 +56,7 @@ class SegmentEditor(QWidget):
 		toolbar.addWidget(self.btn_up)
 		toolbar.addWidget(self.btn_down)
 
-		toolbar.addSpacing(20)
+		toolbar.addWidget(create_vline())
 
 		toolbar.addWidget(
 			QLabel(lang.tr("name"))
@@ -67,6 +68,8 @@ class SegmentEditor(QWidget):
 			self.name_edit
 		)
 
+		toolbar.addWidget(create_vline())
+
 		toolbar.addWidget(
 			QLabel(lang.tr("length"))
 		)
@@ -77,6 +80,8 @@ class SegmentEditor(QWidget):
 		toolbar.addWidget(
 			self.length_spin
 		)
+
+		toolbar.addWidget(create_vline())
 
 		self.btn_apply = QPushButton(
 			lang.tr("apply")

@@ -23,7 +23,9 @@ from PySide6.QtWidgets import (
 	QWidget,
 	QColorDialog,
 	QSplitter,
-	QInputDialog
+	QInputDialog,
+    QRadioButton,
+    QButtonGroup
 )
 from PySide6.QtPrintSupport import (
     QPrinter,
@@ -34,7 +36,11 @@ from model.ribbon_model import RibbonModel
 from model.tank import Tank
 from ui.process_widget import ProcessWidget
 from ui.segment_editor import SegmentEditor
+from ui.widget import create_vline
 from utils.lang import lang
+
+FT_TO_M = 0.3048
+M_TO_FT = 1 / FT_TO_M
 
 class MainWindow(QWidget):
 	"""
@@ -67,6 +73,8 @@ class MainWindow(QWidget):
 
 		self.last_time = self.elapsed_timer.elapsed()
 
+		self.display_feet = False
+
 		app = QApplication.instance()
 		if app: app.installEventFilter(self)
 
@@ -96,9 +104,9 @@ class MainWindow(QWidget):
 
 		process = QVBoxLayout(tab)
 
-		self.build_params_bar(process)
+		self.build_toolbar01(process)
+		self.build_toolbar02(process)
 		self.build_transport_bar(process)
-		self.build_reset_bar(process)
 
 		splitter = QSplitter(
 			Qt.Orientation.Vertical
@@ -133,11 +141,12 @@ class MainWindow(QWidget):
 		layout = QVBoxLayout(tab)
 
 		# speed preset
+		preset_row = QHBoxLayout()
 		self.speed_presets_edits = []
-		layout.addWidget(
+		preset_row.addWidget(
 			QLabel(lang.tr("speed_presets"))
 		)
-		preset_row = QHBoxLayout()
+		preset_row.addWidget(create_vline(False, 10))
 		for _ in range(4):
 			spin = QDoubleSpinBox()
 			spin.setMaximum(30)
@@ -349,48 +358,118 @@ class MainWindow(QWidget):
 		self.refresh()
 
 	## MAIN TAB
-	def build_params_bar(self, process):
+	def build_toolbar01(self, process):
+		"""
+		Speed, speed presets, reset and print
+		"""
 
-		params = QHBoxLayout()
+		speedparams = QHBoxLayout()
+		speedparams.setAlignment(
+			Qt.AlignmentFlag.AlignLeft
+		)
 
-		# speed presets
+		# speed and presets
 		self.speed = QDoubleSpinBox()
 		self.speed.setMaximum(10000)
 		self.speed.setSuffix(" ft/min")
 		self.speed.setMaximumWidth(120)
-		params.addWidget(QLabel(lang.tr("speed_presets")))
-		params.addWidget(self.speed)
+		speedparams.addWidget(QLabel(lang.tr("Speed")))
+		speedparams.addWidget(self.speed)
+
+		speedparams.addWidget(create_vline(False, 10))
 		
 		self.speed_preset_layout = QHBoxLayout()
-		params.addLayout(
-			self.speed_preset_layout
-		)
+		speedparams.addLayout(self.speed_preset_layout)
 
-		params.addWidget(self.create_vline())
+		#reset
+		resetparams = QHBoxLayout()
+		resetparams.setAlignment(
+			Qt.AlignmentFlag.AlignRight
+		)
+		b = QPushButton(lang.tr("reset"))
+		b.clicked.connect(self.reset)
+		resetparams.addWidget(b)
+		b.setToolTip(lang.tr("tooltip_reset"))
+		
+		resetparams.addWidget(create_vline(False, 10))
+
+		# print queue
+		b = QPushButton(lang.tr("print_queue"))
+		b.clicked.connect(self.print_queue)
+		resetparams.addWidget(b)
+		b.setToolTip(lang.tr("tooltip_print"))
+
+		params = QHBoxLayout()
+		params.addLayout(speedparams)
+		params.addLayout(resetparams)
+		process.addLayout(params)
+
+	def build_toolbar02(self, process):
+		"""
+		Film and leader creation
+		"""
+
+		filmparams = QHBoxLayout()
 
 		# film name
 		self.film_name = QLineEdit()
-		params.addWidget(QLabel(lang.tr("name")))
-		params.addWidget(self.film_name)
+		# self.film_name.setMaximumWidth(300)
+		filmparams.addWidget(QLabel(lang.tr("name")))
+		filmparams.addWidget(self.film_name)
+
+		filmparams.addWidget(create_vline())
+
+		# preset 30m
+		self.add100ft_button = QPushButton("30m")
+		self.add100ft_button.clicked.connect(
+			lambda: self.add_film_preset(30.48)
+		)
+		filmparams.addWidget(self.add100ft_button)
+		self.add100ft_button.setToolTip(lang.tr("tooltip_add100ft"))
+
+		# preset 122m
+		self.add400ft_button = QPushButton("122m")
+		self.add400ft_button.clicked.connect(
+			lambda: self.add_film_preset(121.92)
+		)
+		filmparams.addWidget(self.add400ft_button)
+		self.add400ft_button.setToolTip(lang.tr("tooltip_add400ft"))
+
+		filmparams.addWidget(create_vline(False, 10))
 
 		# film length
 		self.film_length = QDoubleSpinBox()
 		self.film_length.setMaximum(10000)
 		self.film_length.setSuffix(" m")
-		self.film_length.setMaximumWidth(120)
-		params.addWidget(QLabel(lang.tr("film")))
-		params.addWidget(self.film_length)
+		# self.film_length.setMaximumWidth(120)
+		filmparams.addWidget(QLabel(lang.tr("film")))
+		filmparams.addWidget(self.film_length)
 
 		# leader length
 		self.leader_length = QDoubleSpinBox()
 		self.leader_length.setMaximum(1000)
 		self.leader_length.setSuffix(" m")
 		self.leader_length.setValue(3)
-		self.leader_length.setMaximumWidth(120)
-		params.addWidget(QLabel(lang.tr("leader")))
-		params.addWidget(self.leader_length)
+		# self.leader_length.setMaximumWidth(120)
+		filmparams.addWidget(QLabel(lang.tr("leader")))
+		filmparams.addWidget(self.leader_length)
 
-		params.addWidget(self.create_vline())
+		filmparams.addWidget(create_vline(False, 10))
+
+		# unit selector
+		self.unit_group = QButtonGroup(self)
+		self.radio_m = QRadioButton("m")
+		self.radio_ft = QRadioButton("ft")
+		self.radio_m.setChecked(True)
+		self.unit_group.addButton(self.radio_m)
+		self.unit_group.addButton(self.radio_ft)
+		filmparams.addWidget(self.radio_m)
+		filmparams.addWidget(self.radio_ft)
+		self.radio_m.toggled.connect(
+			self.update_units
+		)
+
+		filmparams.addWidget(create_vline())
 
 		## buttons
 		button_font = self.font()
@@ -400,31 +479,27 @@ class MainWindow(QWidget):
 		b = QPushButton(lang.tr("add_to_queue"))
 		b.clicked.connect(self.add_film)
 		b.setFont(button_font)
-		params.addWidget(b)
+		filmparams.addWidget(b)
+		b.setToolTip(lang.tr("tooltip_addfilm"))
 
 		# attach to film
 		b = QPushButton(lang.tr("attach_to_film"))
-		b.clicked.connect(self.attach_to_film)
+		b.clicked.connect(lambda: self.add_film(attach = True))
 		b.setFont(button_font)
-		params.addWidget(b)
+		filmparams.addWidget(b)
+		b.setToolTip(lang.tr("tooltip_attachtofilm"))
 
-		params.addWidget(self.create_vline())
+		filmparams.addWidget(create_vline())
 
 		# add separator
 		b = QPushButton(lang.tr("add_separator"))
 		b.clicked.connect(self.add_separator)
 		b.setFont(button_font)
-		params.addWidget(b)
+		filmparams.addWidget(b)
+		b.setToolTip(lang.tr("tooltip_addmarker"))
 
-		params.addWidget(self.create_vline())
-
-		# print queue
-		b = QPushButton(lang.tr("print_queue"))
-		b.clicked.connect(self.print_queue)
-		# b.setFont(button_font)
-		params.addWidget(b)
-
-		process.addLayout(params)
+		# filmparams.addStretch()
+		process.addLayout(filmparams)
 
 	def build_transport_bar(self, process):
 
@@ -478,35 +553,6 @@ class MainWindow(QWidget):
 		self.move_right_btn.setFont(font)
 
 		process.addLayout(btnsPlay)
-
-	def build_reset_bar(self, process):
-
-		btnsClear = QHBoxLayout()
-
-		b = QPushButton(lang.tr("clear_supply_reel"))
-		b.clicked.connect(self.clear_supply_reel)
-		btnsClear.addWidget(b)
-		b.setToolTip(
-			lang.tr("tooltip_clear_supply")
-		)
-
-		b = QPushButton(lang.tr("reset"))
-		b.clicked.connect(self.reset)
-		btnsClear.addWidget(b)
-		b.setToolTip(
-			lang.tr("tooltip_reset")
-		)
-
-		b = QPushButton(lang.tr("clear_receiving_reel"))
-		b.clicked.connect(
-			self.clear_receiving_reel
-		)
-		btnsClear.addWidget(b)
-		b.setToolTip(
-			lang.tr("tooltip_clear_receiving")
-		)
-
-		process.addLayout(btnsClear)
 
 	def build_info_panels(self, process):
 
@@ -582,39 +628,188 @@ class MainWindow(QWidget):
 	def eventFilter(self, obj, event):
 
 		if event.type() == QEvent.Type.KeyPress:
-			if event.key() == Qt.Key.Key_Control:
+
+			if self.handle_shortcuts(event):
+				return True
+
+			if event.key() == Qt.Key.Key_Shift:
 				self.move_left_btn.setText("<< -10m")
 				self.move_right_btn.setText("+10m >>")
 
 		elif event.type() == QEvent.Type.KeyRelease:
-			if event.key() == Qt.Key.Key_Control:
+
+			if event.key() == Qt.Key.Key_Shift:
 				self.move_left_btn.setText("<< -1m")
 				self.move_right_btn.setText("+1m >>")
 
 		return False
 
-	def create_vline(self):
+	def handle_shortcuts(self, event):
 
-		container = QWidget()
+		focus = QApplication.focusWidget()
 
-		layout = QVBoxLayout(container)
-		layout.setContentsMargins(
-			10, 0, 10, 0
+		key = event.key()
+		mod = event.modifiers()
+
+		# ------------------------------------------------------------------
+		# Space = Start / Pause
+		# ------------------------------------------------------------------
+
+		if (
+			key == Qt.Key.Key_Space
+			and not isinstance(focus, QLineEdit)
+		):
+			self.toggle_simulation()
+			return True
+
+		# ------------------------------------------------------------------
+		# Ctrl + P
+		# ------------------------------------------------------------------
+
+		if (
+			key == Qt.Key.Key_P
+			and mod & Qt.KeyboardModifier.ControlModifier
+		):
+			self.print_queue()
+			return True
+
+		# ------------------------------------------------------------------
+		# ← / →
+		# ------------------------------------------------------------------
+
+		if mod & Qt.KeyboardModifier.ControlModifier:
+			if key == Qt.Key.Key_Left:
+				self.move_ribbon(-1)
+				return True
+
+			if key == Qt.Key.Key_Right:
+				self.move_ribbon(+1)
+				return True
+
+		# ------------------------------------------------------------------
+		# ↑ / ↓ = Move selected segment
+		# ------------------------------------------------------------------
+
+		if mod & Qt.KeyboardModifier.ControlModifier:
+			if (
+				key in (Qt.Key.Key_Up, Qt.Key.Key_Down)
+				and not isinstance(focus, QLineEdit)
+			):
+				if self.selected_segment_id is not None:
+
+					if key == Qt.Key.Key_Up:
+						self.move_selected_segment(-1)
+					else:
+						self.move_selected_segment(+1)
+
+					return True
+
+		# ------------------------------------------------------------------
+		# Enter = Add film
+		# ------------------------------------------------------------------
+
+		if key in (
+			Qt.Key.Key_Return,
+			Qt.Key.Key_Enter
+		):
+
+			if focus in (
+				self.film_name,
+				self.film_length,
+				self.leader_length
+			):
+				self.add_film()
+				return True
+
+			if focus in (
+				self.segment_editor.name_edit,
+				self.segment_editor.length_spin
+			):
+				self.apply_selected_segment(
+					self.segment_editor.name_edit.text(),
+					self.segment_editor.length_spin.value()
+				)
+				return True
+
+		# ------------------------------------------------------------------
+		# Delete = Delete selected segment
+		# ------------------------------------------------------------------
+
+		if (
+			key == Qt.Key.Key_Delete
+			and self.selected_segment_id is not None
+		):
+			self.delete_selected_segment()
+			return True
+
+		return False
+
+	def add_film_preset(self, length):
+
+		if (length <= 0):
+			return
+
+		self.model.add_film(
+			length,
+			0,
+			self.film_name.text()
 		)
 
-		line = QFrame()
+		self.refresh()
 
-		line.setFrameShape(
-			QFrame.Shape.VLine
+	def update_units(self):
+
+		old_film = self.film_length.value()
+		old_leader = self.leader_length.value()
+
+		self.display_feet = (
+			self.radio_ft.isChecked()
+		)
+		if self.display_feet:
+			self.film_length.setValue(
+				old_film / FT_TO_M
+			)
+			self.leader_length.setValue(
+				old_leader / FT_TO_M
+			)
+			self.add100ft_button.setText("100ft")
+			self.add400ft_button.setText("400ft")
+
+		else:
+			self.film_length.setValue(
+				old_film * FT_TO_M
+			)
+			self.leader_length.setValue(
+				old_leader * FT_TO_M
+			)
+			self.add100ft_button.setText("30,5m")
+			self.add400ft_button.setText("122m")
+
+		self.refresh_unit_display()
+
+	def refresh_unit_display(self):
+
+		if self.display_feet:
+			self.film_length.setSuffix(" ft")
+			self.leader_length.setSuffix(" ft")
+
+		else:
+			self.film_length.setSuffix(" m")
+			self.leader_length.setSuffix(" m")
+
+	def ui_to_meters(self, value):
+		return (
+			value * FT_TO_M
+			if self.display_feet
+			else value
 		)
 
-		line.setFrameShadow(
-			QFrame.Shadow.Sunken
+	def meters_to_ui(self, value):
+		return (
+			value / FT_TO_M
+			if self.display_feet
+			else value
 		)
-
-		layout.addWidget(line)
-
-		return container
 
 ## SEGMENTS
 	def on_segment_selected(self, segment_id):
@@ -792,7 +987,7 @@ class MainWindow(QWidget):
 		return None
 
 ## SIMULATION
-	def add_film(self):
+	def add_film(self, attach = False):
 		"""
 		Add a new film and its leader to the ribbon.
 		"""
@@ -803,34 +998,15 @@ class MainWindow(QWidget):
 		):
 			return
 
+		film_length = self.ui_to_meters(self.film_length.value())
+		leader_length = self.ui_to_meters(self.leader_length.value())
+
 		self.model.add_film(
-			self.film_length.value(),
-			self.leader_length.value(),
-			self.film_name.text()
-		)
-
-		self.refresh()
-
-	def attach_to_film(self):
-		"""
-		Attach a film directly behind the last film already
-		in the machine.
-
-		If queue already contains ribbon, fallback to the
-		normal queue insertion.
-		"""
-		
-		if (
-			self.film_length.value() <= 0
-			and self.leader_length.value() <= 0
-		):
-			return
-
-		self.model.attach_film(
-			self.film_length.value(),
-			self.leader_length.value(),
-			self.film_name.text()
-		)
+			film_length,
+			leader_length,
+			self.film_name.text(),
+			attach = attach
+			)
 
 		self.refresh()
 
@@ -863,7 +1039,7 @@ class MainWindow(QWidget):
 			10.0
 			if (
 				QGuiApplication.keyboardModifiers()
-				& Qt.KeyboardModifier.ControlModifier
+				& Qt.KeyboardModifier.ShiftModifier
 			)
 			else 1.0
 		)
@@ -1074,8 +1250,7 @@ class MainWindow(QWidget):
 
 ## ACTIONS
 	def reset(self):
-		self.start_pause_btn.setText(lang.tr("start"))
-		self.timer.stop()
+		self.toggle_simulation()
 		self.model.segments.clear()
 		self.received_film=0.0
 		self.received_leader=0.0

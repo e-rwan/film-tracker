@@ -39,49 +39,51 @@ class RibbonModel:
 			yield seg, start, end
 			cursor = end
 
-	def add_film(self, film_length, leader_length, film_name=None):
-		"""Add a new film and its leader to the ribbon."""
-		last_film_end = None
+	def add_film(
+		self,
+		film_length,
+		leader_length,
+		film_name=None,
+		attach=False
+	):
+		"""Add a new film and its leader."""
 
-		for seg, seg_start, seg_end in self.iter_segments():
-			if seg.is_film:
-				last_film_end = seg_end
-
-		if last_film_end is not None:
-			free_leader = self.processed_length - last_film_end
-
-			if free_leader > 0:
-				self.segments.append(Segment.leader(free_leader, self.next_segment_id()))
-
-		if not film_name:
-			film_name = f"film {self.next_film_id()}"
-
-		if film_length > 0:
-			self.segments.append(Segment.film(film_length, self.next_segment_id(), film_name))
-		if leader_length > 0:
-			self.segments.append(Segment.leader(leader_length, self.next_segment_id()))
-
-	def attach_film(self, film_length, leader_length, film_name=None):
-		"""
-		Add a film immediately after the last existing segment.
-		"""
-
-		queue_length = max(
-			0,
-			self.ribbon_length() - self.processed_length
-		)
-
-		# Something already waiting in queue or No ribbon yet
-		if queue_length > 0 or not self.segments:
-			self.add_film(
-				film_length,
-				leader_length,
-				film_name
+		if attach:
+			queue_length = max(
+				0,
+				self.ribbon_length() - self.processed_length
 			)
-			return
+
+			# Queue already contains ribbon
+			if queue_length > 0 or not self.segments:
+				attach = False
+
+		if not attach:
+			last_film_end = None
+
+			for seg, seg_start, seg_end in self.iter_segments():
+				if seg.is_film:
+					last_film_end = seg_end
+
+			if last_film_end is not None:
+
+				free_leader = (
+					self.processed_length
+					- last_film_end
+				)
+
+				if free_leader > 0:
+					self.segments.append(
+						Segment.leader(
+							free_leader,
+							self.next_segment_id()
+						)
+					)
 
 		if not film_name:
-			film_name = f"film {self.next_film_id()}"
+			film_name = (
+				f"film {self.next_film_id()}"
+			)
 
 		if film_length > 0:
 			self.segments.append(
