@@ -910,6 +910,15 @@ class MainWindow(QWidget):
 
 		self.refresh()
 
+		segment = self.get_selected_segment()
+
+		if segment is not None:
+			self.segment_editor.select_segment(segment.id)
+			self.segment_editor.load_segment(segment)
+			self.view.set_selected_segment(segment.id)
+		else:
+			self.segment_editor.set_segment_enabled(False)
+
 	def move_selected_segment(self, offset):
 
 		segment = self.get_selected_segment()
@@ -1080,9 +1089,13 @@ class MainWindow(QWidget):
 
 		self.refresh()
 
-	def toggle_simulation(self):
+	def toggle_simulation(self, state="auto"):
 
-		if self.timer.isActive():
+		if (
+			self.timer.isActive()
+			or state is "off"
+			and state is not "on"
+		):
 			self.timer.stop()
 			self.start_pause_btn.setStyleSheet(
 				"background-color: #344B34;"
@@ -1095,7 +1108,7 @@ class MainWindow(QWidget):
 			self.last_time = (
 				self.elapsed_timer.elapsed()
 			)
-			self.timer.start(50)
+			self.timer.start(65)
 			self.start_pause_btn.setStyleSheet(
 				"background-color: #661D1D;"
 			)
@@ -1237,9 +1250,9 @@ class MainWindow(QWidget):
 			self.segment_editor.select_segment(
 				segment.id
 			)
-			self.segment_editor.load_segment(
-				segment
-			)
+			# self.segment_editor.load_segment(
+			# 	segment
+			# )
 			self.view.set_selected_segment(
 				segment.id
 			)
@@ -1247,7 +1260,6 @@ class MainWindow(QWidget):
 			self.view.set_selected_segment(
 				None
 			)
-
 
 		total_queue = max(
 			0,
@@ -1286,13 +1298,14 @@ class MainWindow(QWidget):
 
 ## ACTIONS
 	def reset(self):
-		self.toggle_simulation()
+		self.toggle_simulation("off")
 		self.model.segments.clear()
 		self.received_film=0.0
 		self.received_leader=0.0
 		self.model._next_film_id = 1
 		self.model.processed_length=0.0
 		self.model.receiving_offset=0.0
+		self.segment_editor.set_segment_enabled(False)
 
 		self.refresh()
 

@@ -11,72 +11,72 @@
   "tanks": [
     {
       "name": "Elevator \ud83e\udc15",
-      "length": 75.0,
+      "length": 75.45,
       "color": "#2d2d2d"
     },
     {
       "name": "Prebath",
-      "length": 5.5,
+      "length": 5.14,
       "color": "#6eb1be"
     },
     {
       "name": "Buffer Wash",
-      "length": 17.2,
+      "length": 17.49,
       "color": "#7291c8"
     },
     {
       "name": "Developer",
-      "length": 20.7,
+      "length": 21.19,
       "color": "#786db4"
     },
     {
       "name": "Stop",
-      "length": 24.1,
+      "length": 24.66,
       "color": "#c8af62"
     },
     {
       "name": "Wash 1",
-      "length": 24.1,
+      "length": 24.66,
       "color": "#7291c8"
     },
     {
       "name": "Bleach",
-      "length": 24.1,
+      "length": 24.66,
       "color": "#b46d6d"
     },
     {
       "name": "Wash 2",
-      "length": 24.1,
+      "length": 24.66,
       "color": "#7291c8"
     },
     {
       "name": "Fixer",
-      "length": 24.1,
+      "length": 24.66,
       "color": "#61a061"
     },
     {
       "name": "Wash 3",
-      "length": 24.1,
+      "length": 24.66,
       "color": "#7291c8"
     },
     {
       "name": "Wash 4",
-      "length": 19.5,
+      "length": 19.87,
       "color": "#7291c8"
     },
     {
       "name": "Final Rinse",
-      "length": 5.2,
+      "length": 5.61,
       "color": "#6eb1be"
     },
     {
       "name": "Dryer",
-      "length": 52.2,
+      "length": 51.69,
       "color": "#786552"
     },
     {
       "name": " Elevator \ud83e\udc17",
-      "length": 18.9,
+      "length": 18.31,
       "color": "#2D2D2D"
     }
   ]
