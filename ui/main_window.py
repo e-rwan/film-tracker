@@ -11,7 +11,7 @@ from PySide6.QtGui import QGuiApplication, QColor, QFont, QTextDocument, QDeskto
 from PySide6.QtWidgets import (
 	QApplication,
 	QDoubleSpinBox,
-	QFrame,
+	QAbstractSpinBox,
 	QHBoxLayout,
 	QLabel,
 	QLineEdit,
@@ -164,19 +164,20 @@ class MainWindow(QWidget):
 		layout.addLayout(self.tank_container)
 
 		# add tank button
-		buttons = QHBoxLayout()
+		buttonsAdd = QHBoxLayout()
 		btn_add = QPushButton(lang.tr("add_tank"))
-		btn_add.clicked.connect(
-			self.add_tank
-		)
-		buttons.addWidget(
-			btn_add
-		)
-		buttons.addStretch()
+		btn_add.clicked.connect(self.add_tank)
+		buttonsAdd.addWidget(btn_add)
+		buttonsAdd.addStretch()
 
-		layout.addLayout(
-			buttons
-		)
+		# save settings button
+		buttonsSave = QHBoxLayout()
+		btn_save = QPushButton(lang.tr("Save"))
+		btn_save.clicked.connect(self.save_settings)
+		buttonsSave.addWidget(btn_save)
+
+		layout.addLayout(buttonsAdd)
+		layout.addLayout(buttonsSave)
 
 	def rebuild_tank_editor(self):
 
@@ -299,7 +300,7 @@ class MainWindow(QWidget):
 
 		self.rebuild_tank_editor()
 
-		self.save_settings()
+		# self.save_settings()
 
 	def remove_tank(self, index):
 
@@ -310,7 +311,7 @@ class MainWindow(QWidget):
 
 		self.rebuild_tank_editor()
 
-		self.save_settings()
+		# self.save_settings()
 
 	def move_tank_up(self, index):
 
@@ -323,7 +324,7 @@ class MainWindow(QWidget):
 		)
 
 		self.rebuild_tank_editor()
-		self.save_settings()
+		# self.save_settings()
 		self.refresh()
 
 	def move_tank_down(self, index):
@@ -337,7 +338,7 @@ class MainWindow(QWidget):
 		)
 
 		self.rebuild_tank_editor()
-		self.save_settings()
+		# self.save_settings()
 		self.refresh()
 
 	def choose_tank_color(self, tank):
@@ -354,7 +355,7 @@ class MainWindow(QWidget):
 		tank.color = color.name()
 
 		self.rebuild_tank_editor()
-		self.save_settings()
+		# self.save_settings()
 		self.refresh()
 
 	## MAIN TAB
@@ -651,13 +652,23 @@ class MainWindow(QWidget):
 		key = event.key()
 		mod = event.modifiers()
 
+		editing = isinstance(
+			focus,
+			(QLineEdit, QAbstractSpinBox)
+		)
+
+		in_tables = (
+			focus is not None
+			and self.segment_editor.tables_widget.isAncestorOf(focus)
+		)
+
 		# ------------------------------------------------------------------
 		# Space = Start / Pause
 		# ------------------------------------------------------------------
 
 		if (
 			key == Qt.Key.Key_Space
-			and not isinstance(focus, QLineEdit)
+			and not editing
 		):
 			self.toggle_simulation()
 			return True
@@ -677,7 +688,10 @@ class MainWindow(QWidget):
 		# ← / →
 		# ------------------------------------------------------------------
 
-		if mod & Qt.KeyboardModifier.ControlModifier:
+		if (
+			mod & Qt.KeyboardModifier.ControlModifier
+			and not editing
+			):
 			if key == Qt.Key.Key_Left:
 				self.move_ribbon(-1)
 				return True
@@ -693,16 +707,15 @@ class MainWindow(QWidget):
 		if mod & Qt.KeyboardModifier.ControlModifier:
 			if (
 				key in (Qt.Key.Key_Up, Qt.Key.Key_Down)
-				and not isinstance(focus, QLineEdit)
+				and self.selected_segment_id is not None
+				and not editing
 			):
-				if self.selected_segment_id is not None:
+				if key == Qt.Key.Key_Up:
+					self.move_selected_segment(-1)
+				else:
+					self.move_selected_segment(+1)
 
-					if key == Qt.Key.Key_Up:
-						self.move_selected_segment(-1)
-					else:
-						self.move_selected_segment(+1)
-
-					return True
+				return True
 
 		# ------------------------------------------------------------------
 		# Enter = Add film
@@ -738,6 +751,7 @@ class MainWindow(QWidget):
 		if (
 			key == Qt.Key.Key_Delete
 			and self.selected_segment_id is not None
+			and not editing
 		):
 			self.delete_selected_segment()
 			return True
@@ -879,9 +893,20 @@ class MainWindow(QWidget):
 			for i, s in enumerate(self.model.segments)
 			if s is segment
 		)
+
 		del self.model.segments[index]
 
-		self.selected_segment = None
+		if self.model.segments:
+			index = min(
+				index,
+				len(self.model.segments) - 1
+			)
+			self.selected_segment_id = (
+				self.model.segments[index].id
+			)
+
+		else:
+			self.selected_segment_id = None
 
 		self.refresh()
 
@@ -1212,6 +1237,17 @@ class MainWindow(QWidget):
 			self.segment_editor.select_segment(
 				segment.id
 			)
+			self.segment_editor.load_segment(
+				segment
+			)
+			self.view.set_selected_segment(
+				segment.id
+			)
+		else:
+			self.view.set_selected_segment(
+				None
+			)
+
 
 		total_queue = max(
 			0,

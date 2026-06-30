@@ -124,15 +124,16 @@ class SegmentEditor(QWidget):
 			self.receiving_table
 		]
 
-		tables_layout = QHBoxLayout()
+		self.tables_widget = QWidget()
+		tables_layout = QHBoxLayout(self.tables_widget)
 		tables_layout.setSpacing(0)
 
 		tables_layout.addWidget(queue_group, 1)
 		tables_layout.addWidget(processing_group, 1)
 		tables_layout.addWidget(receiving_group, 1)
 
-		layout.addLayout(
-			tables_layout
+		layout.addWidget(
+			self.tables_widget
 		)
 
 		# Disabled by default
@@ -450,3 +451,4 @@ class SegmentEditor(QWidget):
 		self.length_spin.setValue(
 			segment.length
 		)
+
