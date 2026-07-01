@@ -138,25 +138,25 @@ class RibbonModel:
 
 		return film * ratio, leader * ratio
 
-	def get_remaining_time(self, seg_end, machine_length, speed_ft_min, extra_length=0):
+	def get_remaining_time(
+		self,
+		position,
+		target_position,
+		speed_ft_min
+	):
 		"""
-		Return remaining time before the end of a segment
-		(or segment + leader) exits the machine.
+		Return remaining time before 'position'
+		reaches 'target_position'.
 		"""
+
 		speed_m_min = speed_ft_min * 0.3048
 
 		if speed_m_min <= 0:
 			return "--:--"
 
-		receiving_position = (
-			self.processed_length
-			- machine_length
-		)
-
 		remaining_length = (
-			seg_end
-			+ extra_length
-			- receiving_position
+			position
+			- target_position
 		)
 
 		if remaining_length <= 0:
@@ -172,65 +172,6 @@ class RibbonModel:
 		seconds = int(remaining_seconds % 60)
 
 		return f"{minutes:02d}:{seconds:02d}"
-
-	def build_segment_list(self, zone_start, zone_end, title, total_length:float = 600.0, speed_ft_min: float | None = None):
-		"""
-		Build a textual representation of the films
-		visible within a ribbon zone.
-		"""
-
-		occupied_length = 0
-		film_lines = []
-		for i, (seg, seg_start, seg_end) in enumerate(self.iter_segments()):
-
-			visible = max(
-				0,
-				min(seg_end, zone_end) - max(seg_start, zone_start)
-			)
-
-
-			if visible <= 0:
-				continue
-
-			if seg.is_lead:
-				film_lines.append(
-					f"Leader : "
-					f"{visible:.1f} / "
-					f"{seg.length:.1f} m"
-				)
-				occupied_length += visible
-				continue
-
-			remaining_text = ""
-			if (
-				(title == "Processing" or title == "Queue")
-				and speed_ft_min is not None
-			):
-				remaining_text = (
-					f"  -  Remaining : "
-					f"{self.get_remaining_time(
-						seg_end,
-						total_length,
-						speed_ft_min
-					)}"
-				)
-			film_lines.append(
-				f"{seg.name} : "
-				f"{visible :.1f} / "
-				f"{seg.length:.1f} m"
-				f"{remaining_text}"
-			)
-
-			occupied_length += visible
-
-		if(title == "Processing" ):
-			lines = [f"{title} : {occupied_length:.1f} / {total_length:.1f} m", ""]
-		else:
-			lines = [f"{title} : {occupied_length:.1f}"]
-
-		lines.extend(film_lines)
-
-		return "\n".join(lines)
 
 	def clear_supply_reel(self):
 		"""
@@ -292,4 +233,20 @@ class RibbonModel:
 		self._next_film_id += 1
 
 		return film_id
+
+	def time_until_position(self, position, speed_m_s):
+		"""
+		Return the remaining time (in seconds) before processed_length
+		reaches the given ribbon position.
+		"""
+
+		if speed_m_s <= 0:
+			return None
+
+		remaining = max(
+			0,
+			position - self.processed_length
+		)
+
+		return remaining / speed_m_s
 

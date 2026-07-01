@@ -186,7 +186,7 @@ class SegmentEditor(QWidget):
 				lang.tr("name"),
 				lang.tr("type"),
 				lang.tr("total"),
-				lang.tr("eta")
+				lang.tr("OUT")
 			]
 		)
 
@@ -314,7 +314,7 @@ class SegmentEditor(QWidget):
 					segment.name or "",
 					segment.type,
 					f"{row['visible']:.1f}m ({segment.length:.1f}m)",
-					row["eta"]
+					row["OUT"]
 				]
 
 			for col, value in enumerate(values):

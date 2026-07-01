@@ -36,6 +36,7 @@ from model.ribbon_model import RibbonModel
 from model.tank import Tank
 from ui.process_widget import ProcessWidget
 from ui.segment_editor import SegmentEditor
+from ui.segment_editor import ZONE_QUEUE
 from ui.widget import create_vline
 from utils.lang import lang
 
@@ -856,6 +857,7 @@ class MainWindow(QWidget):
 				continue
 
 			eta = ""
+			eta_in = ""
 
 			if (
 				speed_ft_min
@@ -863,18 +865,29 @@ class MainWindow(QWidget):
 			):
 				eta = self.model.get_remaining_time(
 					seg_end,
-					self.machine_length(),
+					self.model.processed_length - self.machine_length(),
+					speed_ft_min
+				)
+				eta_in = self.model.get_remaining_time(
+					seg_end,
+					self.model.processed_length,
 					speed_ft_min
 				)
 
-			rows.append(
-				{
-					"zone": zone_name,
-					"segment": seg,
-					"visible": visible,
-					"eta": eta
-				}
-			)
+			row = {
+				"zone": zone_name,
+				"segment": seg,
+				"visible": visible,
+			}
+
+			if zone_name == ZONE_QUEUE:
+				row["OUT"] = f"{eta_in} ({eta})"
+			else:
+				row["OUT"] = eta
+
+			rows.append(row)
+
+
 
 		return rows
 
@@ -1093,8 +1106,8 @@ class MainWindow(QWidget):
 
 		if (
 			self.timer.isActive()
-			or state is "off"
-			and state is not "on"
+			or state == "off"
+			and state != "on"
 		):
 			self.timer.stop()
 			self.start_pause_btn.setStyleSheet(

@@ -35,10 +35,10 @@ receiving_reel=Sortie
 clear_supply_reel=Vider entrée
 clear_receiving_reel=Vider sortie
 
-tooltip_move_left=Déplacer le ruban de -1 m (Ctrl = -10 m)
+tooltip_move_left=Déplacer le ruban de -1 m (CTRL + <, Ctrl + Maj + < = -10 m)
 tooltip_print=Imprimer la liste des projets en développement
-tooltip_move_right=Déplacer le ruban de +1 m (Ctrl = +10 m)
-tooltip_start_pause=Démarrer ou mettre en pause la simulation
+tooltip_move_right=Déplacer le ruban de +1 m (CTRL + >, Ctrl + Maj + >  = +10 m)
+tooltip_start_pause=Démarrer ou mettre en pause la simulation(Espace)
 
 tooltip_reset=Réinitialiser la simulation
 tooltip_clear_supply=Vider la file d'entrée
