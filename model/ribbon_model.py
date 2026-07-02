@@ -134,9 +134,176 @@ class RibbonModel:
 
 		# Retirer receiving_offset proportionnellement à film/leader réels
 		offset = min(self.receiving_offset, total_received)
+
 		ratio = 1.0 - (offset / total_received)
 
 		return film * ratio, leader * ratio
+
+	def machine_length(self):
+		return sum(tank.length for tank in self.tanks)
+
+
+	def add_tank(self, name, length=1.0, color="#808080"):
+
+		self.tanks.append(
+			Tank(
+				name=name,
+				length=length,
+				color=color,
+			)
+		)
+
+	def update_tank_name(self, index, name):
+		if 0 <= index < len(self.tanks):
+			self.tanks[index].name = name
+
+	def update_tank_length(self, index, length):
+		if 0 <= index < len(self.tanks):
+			self.tanks[index].length = length
+
+	def set_tank_color(self, index, color):
+		if 0 <= index < len(self.tanks):
+			self.tanks[index].color = color
+
+	def remove_tank(self, index):
+		if len(self.tanks) <= 1:
+			return False
+
+		if 0 <= index < len(self.tanks):
+			self.tanks.pop(index)
+			return True
+
+		return False
+
+	def move_tank(self, index, offset):
+		new_index = index + offset
+
+		if (
+			index < 0
+			or new_index < 0
+			or index >= len(self.tanks)
+			or new_index >= len(self.tanks)
+		):
+			return False
+
+		self.tanks[index], self.tanks[new_index] = (
+			self.tanks[new_index],
+			self.tanks[index],
+		)
+		return True
+
+	def get_segment_by_id(self, segment_id):
+		for segment in self.segments:
+			if segment.id == segment_id:
+				return segment
+		return None
+
+	def delete_segment_by_id(self, segment_id):
+		segment = self.get_segment_by_id(segment_id)
+		if segment is None:
+			return None
+
+		index = next(
+			i
+			for i, current in enumerate(self.segments)
+			if current is segment
+		)
+		del self.segments[index]
+
+		if not self.segments:
+			return None
+
+		index = min(index, len(self.segments) - 1)
+		return self.segments[index]
+
+	def move_segment_by_id(self, segment_id, offset):
+		segment = self.get_segment_by_id(segment_id)
+		if segment is None:
+			return False
+
+		index = next(
+			i
+			for i, current in enumerate(self.segments)
+			if current is segment
+		)
+		new_index = index + offset
+
+		if new_index < 0 or new_index >= len(self.segments):
+			return False
+
+		self.segments[index], self.segments[new_index] = (
+			self.segments[new_index],
+			self.segments[index],
+		)
+		return True
+
+	def update_segment_by_id(self, segment_id, name, length):
+		segment = self.get_segment_by_id(segment_id)
+		if segment is None:
+			return None
+
+		segment.length = length
+
+		if segment.is_film:
+			segment.name = name
+		elif segment.is_separator:
+			segment.name = name
+
+		return segment
+
+	def build_zone_rows(
+		self,
+		zone_start,
+		zone_end,
+		zone_name,
+		speed_ft_min=None,
+		queue_entry_position=None,
+		queue_exit_position=None,
+	):
+		rows = []
+
+		for seg, seg_start, seg_end in self.iter_segments():
+			visible = max(0, min(seg_end, zone_end) - max(seg_start, zone_start))
+			if visible <= 0:
+				continue
+
+			eta = ""
+			eta_in = ""
+
+			if speed_ft_min and seg.is_film and queue_exit_position is not None:
+				eta = self.get_remaining_time(
+					seg_end,
+					queue_exit_position,
+					speed_ft_min,
+				)
+
+				if queue_entry_position is not None:
+					eta_in = self.get_remaining_time(
+						seg_end,
+						queue_entry_position,
+						speed_ft_min,
+					)
+
+			row = {
+				"zone": zone_name,
+				"segment": seg,
+				"visible": visible,
+			}
+
+			if zone_name == "queue" and eta_in:
+				row["OUT"] = f"{eta_in} ({eta})"
+			else:
+				row["OUT"] = eta
+
+			rows.append(row)
+
+		return rows
+
+	def reset_runtime(self):
+		self.segments.clear()
+		self._next_film_id = 1
+		self.processed_length = 0.0
+		self.receiving_offset = 0.0
 
 	def get_remaining_time(
 		self,
@@ -144,6 +311,7 @@ class RibbonModel:
 		target_position,
 		speed_ft_min
 	):
+
 		"""
 		Return remaining time before 'position'
 		reaches 'target_position'.
