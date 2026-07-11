@@ -149,16 +149,24 @@ class MainWindow(QWidget):
 		key = event.key()
 		mod = event.modifiers()
 
-		editing = isinstance(focus, QAbstractSpinBox) or self.process_controls.is_film_input(focus) or self.info_panel.is_editor_input(focus)
+		editing = focus is not None and (
+			isinstance(focus.window(), QInputDialog)
+			or isinstance(focus, QAbstractSpinBox)
+			or self.process_controls.is_film_input(focus)
+			or self.info_panel.is_editor_input(focus)
+		)
 
-		if key == Qt.Key.Key_Space and not editing:
+		# play/stop simulation
+		if key == Qt.Key.Key_Space  and mod & Qt.KeyboardModifier.ControlModifier and not editing:
 			self.toggle_simulation()
 			return True
 
+		# print queue
 		if key == Qt.Key.Key_P and mod & Qt.KeyboardModifier.ControlModifier:
 			self.print_queue()
 			return True
 
+		# move ribbon in time
 		if mod & Qt.KeyboardModifier.ControlModifier and not editing:
 			if key == Qt.Key.Key_Left:
 				self.move_ribbon(-1)
@@ -168,6 +176,7 @@ class MainWindow(QWidget):
 				self.move_ribbon(1)
 				return True
 
+		# move film in queue
 		if mod & Qt.KeyboardModifier.ControlModifier:
 			if key in (Qt.Key.Key_Up, Qt.Key.Key_Down) and self.selected_segment_id is not None and not editing:
 				if key == Qt.Key.Key_Up:
@@ -176,6 +185,7 @@ class MainWindow(QWidget):
 					self.move_selected_segment(1)
 				return True
 
+		# add film
 		if key in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
 			if self.process_controls.is_film_input(focus):
 				self.add_film()
@@ -188,6 +198,7 @@ class MainWindow(QWidget):
 				)
 				return True
 
+		# delete segment
 		if key == Qt.Key.Key_Delete and self.selected_segment_id is not None and not editing:
 			self.delete_selected_segment()
 			return True
@@ -470,8 +481,8 @@ class MainWindow(QWidget):
 		self.refresh()
 
 	def print_queue(self):
-		today = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-		file_date = datetime.now().strftime("%Y%m%d_%H%M%S")
+		today = datetime.now().strftime("%d/%m/%Y")
+		file_date = datetime.now().strftime("%Y%m%d")
 		pdf_path = Path.home() / f"devlist/queue_list_{file_date}.pdf"
 
 		printer = QPrinter()
@@ -489,7 +500,7 @@ class MainWindow(QWidget):
 		total_film_lenght = 0
 		total_leader_lenght = 0
 
-		for seg in reversed(self.model.segments):
+		for seg in self.model.segments:
 			if seg.is_film:
 				total_film_lenght += seg.length
 				name = seg.name

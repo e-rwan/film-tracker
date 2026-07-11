@@ -106,17 +106,24 @@ class SegmentEditor(QWidget):
 		)
 
 		## Tables
-		self.queue_table, queue_group = (
+		self.queue_table, queue_group, self.queue_total_label = (
 			self.create_table_group(lang.tr(ZONE_QUEUE))
 		)
 
-		self.processing_table, processing_group = (
+		self.processing_table, processing_group, self.processing_total_label = (
 			self.create_table_group(lang.tr(ZONE_PROCESSING))
 		)
 
-		self.receiving_table, receiving_group = (
+		self.receiving_table, receiving_group, self.receiving_total_label = (
 			self.create_table_group(lang.tr(ZONE_RECEIVING))
 		)
+
+		self.table_total_labels = {
+			self.queue_table: self.queue_total_label,
+			self.processing_table: self.processing_total_label,
+			self.receiving_table: self.receiving_total_label,
+		}
+
 
 		self.tables = [
 			self.queue_table,
@@ -245,12 +252,25 @@ class SegmentEditor(QWidget):
 
 		group = QGroupBox(title)
 
+		total_label = QLabel()
+		total_label.setAlignment(
+			Qt.AlignmentFlag.AlignCenter
+		)
+		total_label.setStyleSheet(
+			"padding: 6px 0; font-weight: bold;"
+		)
+		total_label.setText(
+			lang.tr("films_count", count=0)
+		)
+
 		group_layout = QVBoxLayout(group)
 		group_layout.setContentsMargins(0, 0, 0, 0)
 
 		group_layout.addWidget(table)
+		group_layout.addWidget(total_label)
 
-		return table, group
+		return table, group, total_label
+
 
 	def populate(self, rows):
 
@@ -296,6 +316,11 @@ class SegmentEditor(QWidget):
 		table.clearSpans()
 		table.setRowCount(
 			len(rows)
+		)
+
+		self._update_table_total_label(
+			table,
+			rows
 		)
 
 		for row_index, row in enumerate(rows):
@@ -350,6 +375,33 @@ class SegmentEditor(QWidget):
 					col,
 					item
 				)
+
+	def _update_table_total_label(
+		self,
+		table,
+		rows
+	):
+
+		label = self.table_total_labels.get(table)
+
+		if label is None:
+			return
+
+		film_count = sum(
+			1
+			for row in rows
+			if row["segment"].is_film
+		)
+
+		total_film_length = sum(
+			row["visible"]
+			for row in rows
+			if row["segment"].is_film
+		)
+
+		label.setText(
+			f"{lang.tr('films_count', count=film_count)} ({total_film_length:.1f} m)"
+		)
 
 	def set_segment_enabled(self, enabled):
 

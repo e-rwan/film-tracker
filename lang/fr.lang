@@ -74,5 +74,6 @@ notes=Notes
 
 total_film=TOTAL film
 total_leader=TOTAL amorce
+films_count=Films : {count}
 
 leader_name=Amorce
