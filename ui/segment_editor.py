@@ -47,6 +47,9 @@ class SegmentEditor(QWidget):
 
 		layout = QVBoxLayout(self)
 
+		layout.setSpacing(0)
+		layout.setContentsMargins(0, 0, 0, 0)
+
 		## Toolbar
 		toolbar = QHBoxLayout()
 
@@ -142,6 +145,18 @@ class SegmentEditor(QWidget):
 		layout.addWidget(
 			self.tables_widget
 		)
+
+		self.global_total_label = QLabel()
+		self.global_total_label.setAlignment(
+			Qt.AlignmentFlag.AlignCenter
+		)
+
+		self.global_total_label.setContentsMargins(0, 0, 0, 0)
+		self.global_total_label.setStyleSheet(
+			"font-weight: bold; font-size: 12px;"
+		)
+
+		layout.addWidget(self.global_total_label)
 
 		# Disabled by default
 		self.set_segment_enabled(False)
@@ -250,24 +265,33 @@ class SegmentEditor(QWidget):
 			self._selection_changed(t)
 		)
 
-		group = QGroupBox(title)
+		group = QGroupBox()
+
+		title_label = QLabel(title)
+		title_label.setStyleSheet("font-weight: bold;")
 
 		total_label = QLabel()
 		total_label.setAlignment(
-			Qt.AlignmentFlag.AlignCenter
+			Qt.AlignmentFlag.AlignRight
 		)
-		total_label.setStyleSheet(
-			"padding: 6px 0; font-weight: bold;"
-		)
+		# total_label.setStyleSheet(
+		# 	"font-weight: bold;"
+		# )
 		total_label.setText(
 			lang.tr("films_count", count=0)
 		)
 
-		group_layout = QVBoxLayout(group)
-		group_layout.setContentsMargins(0, 0, 0, 0)
+		header_layout = QHBoxLayout()
+		header_layout.setContentsMargins(6, 0, 6, 0)
+		header_layout.addWidget(title_label)
+		header_layout.addStretch()
+		header_layout.addWidget(total_label)
 
+		group_layout = QVBoxLayout(group)
+		group_layout.setContentsMargins(3, 3, 3, 3)
+
+		group_layout.addLayout(header_layout)
 		group_layout.addWidget(table)
-		group_layout.addWidget(total_label)
 
 		return table, group, total_label
 
@@ -305,6 +329,25 @@ class SegmentEditor(QWidget):
 		self.populate_table(
 			self.receiving_table,
 			receiving_rows
+		)
+
+		all_films = {
+			row["segment"].id: row["segment"]
+			for row in rows
+			if row["segment"].is_film
+		}
+
+		total_film_count = len(all_films)
+
+		total_film_length = sum(
+			row["visible"]
+			for row in rows
+			if row["segment"].is_film
+		)
+
+		self.global_total_label.setText(
+			f"TOTAL	 : {total_film_count} films "
+			f"({total_film_length:.1f} m)"
 		)
 
 	def populate_table(

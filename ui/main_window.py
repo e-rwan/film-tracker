@@ -3,11 +3,12 @@
 import json
 import math
 import os
+import sys
 
 from datetime import datetime
 from pathlib import Path
 
-from PySide6.QtCore import QElapsedTimer, QEvent, QTimer, Qt, QUrl
+from PySide6.QtCore import QElapsedTimer, QEvent, QProcess, QTimer, Qt, QUrl
 from PySide6.QtGui import QColor, QDesktopServices, QTextDocument
 from PySide6.QtPrintSupport import QPrinter
 from PySide6.QtWidgets import (
@@ -54,6 +55,8 @@ class MainWindow(QWidget):
 		self.elapsed_timer = QElapsedTimer()
 		self.elapsed_timer.start()
 		self.last_time = self.elapsed_timer.elapsed()
+		# Thresholds already announced for each marker ID.
+		self.marker_alerted = {}
 
 		app = QApplication.instance()
 		if app:
@@ -244,6 +247,7 @@ class MainWindow(QWidget):
 			0,
 			self.model.processed_length + direction * step,
 		)
+		self.check_marker_alerts()
 		self.refresh()
 
 	def toggle_simulation(self, state="auto"):
@@ -264,12 +268,84 @@ class MainWindow(QWidget):
 		self.last_time = current_time
 
 		speed_m_s = self.process_controls.speed_value() * 0.3048 / 60.0
+		previous_position = self.model.processed_length
 		self.model.processed_length += speed_m_s * dt
+		self.check_marker_alerts(previous_position)
 
 		if speed_m_s > 0:
 			self.view.reel_angle += math.log(max(speed_m_s * 100, 1)) * 2
 
 		self.refresh()
+
+	def bring_to_front(self):
+		"""Restore and activate the application window for an alert."""
+		if self.isMinimized():
+			self.showNormal()
+		self.raise_()
+		self.activateWindow()
+
+	def play_marker_alert(self, threshold, start_delay_ms=0):
+		"""Play a two-part marker alert, using distinct macOS system sounds."""
+		self.bring_to_front()
+
+		# Tink is a discreet advance warning; Ping is a little more assertive
+		# when the marker is only 2 m from the Processing exit.
+		sound_paths = {
+			10.0: "/System/Library/Sounds/Tink.aiff",
+			2.0: "/System/Library/Sounds/Ping.aiff",
+		}
+		sound_path = sound_paths.get(threshold)
+
+		def play_one_sound():
+			if sys.platform == "darwin" and sound_path and os.path.isfile(sound_path):
+				# afplay runs asynchronously so it cannot freeze the UI timer.
+				process = QProcess(self)
+				process.finished.connect(process.deleteLater)
+				process.errorOccurred.connect(process.deleteLater)
+				process.start("afplay", [sound_path])
+			else:
+				QApplication.beep()
+
+		# bip bip bip — pause — bip bip bip
+		for delay_ms in (0, 220, 440, 1150, 1370, 1590):
+			QTimer.singleShot(start_delay_ms + delay_ms, play_one_sound)
+
+	def check_marker_alerts(self, previous_position=None):
+		"""Alert when a separator marker approaches the Processing exit."""
+		machine_length = self.model.machine_length()
+		if machine_length <= 0:
+			return
+
+		exit_position = self.model.processed_length - machine_length
+		thresholds = (10.0, 2.0)
+		active_marker_ids = set()
+		sequence_delay_ms = 0
+
+		for segment, marker_position, _ in self.model.iter_segments():
+			if not segment.is_separator:
+				continue
+
+			active_marker_ids.add(segment.id)
+			distance = marker_position - exit_position
+			alerted = self.marker_alerted.setdefault(segment.id, set())
+
+			# If the ribbon is moved backwards, permit the same marker to
+			# announce a threshold again on the next approach.
+			for threshold in thresholds:
+				if distance > threshold + 0.25:
+					alerted.discard(threshold)
+
+			for threshold in thresholds:
+				if 0 <= distance <= threshold and threshold not in alerted:
+					alerted.add(threshold)
+					self.play_marker_alert(threshold, sequence_delay_ms)
+					# Separate sequences if a large manual step crosses both
+					# thresholds in the same update.
+					sequence_delay_ms += 2000
+
+		# Drop state for markers that were deleted.
+		for marker_id in set(self.marker_alerted) - active_marker_ids:
+			del self.marker_alerted[marker_id]
 
 	def on_segment_selected(self, segment_id):
 		self.selected_segment_id = segment_id
@@ -463,6 +539,7 @@ class MainWindow(QWidget):
 	def reset(self):
 		self.toggle_simulation("off")
 		self.model.reset_runtime()
+		self.marker_alerted.clear()
 		self.received_film = 0.0
 		self.received_leader = 0.0
 		self.selected_segment_id = None
